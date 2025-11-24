@@ -7,4 +7,5 @@ data/
 test_images/
 
 venv/
+venv311/
 **/.DS_Store
