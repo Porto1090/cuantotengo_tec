@@ -7,7 +7,7 @@ import cv2
 # -------------------------------------------------------------
 # Load model ONCE at import time (fast and efficient)
 # -------------------------------------------------------------
-CLASS_NAMES = ["Canada_Dry", "Diet_Coke", "Seltzer_Lime"]      # ← your classes here
+CLASS_NAMES = ["Dos_Equis_Lager", "Manzanita_Sol", "Modelo_Especial", "Negro_Modelo", "New_Mix_Jimador_Paloma_Lata", "Pepsi_Black", "Pepsi_Light", "Pepsi_Regular"]      # ← your classes here
 MODEL_PATH = "brand_model_3class.pt"                           # ← your trained model file
 
 model = models.resnet18(weights=None)
@@ -60,9 +60,14 @@ def get_brands_from_image(front_bottles, image_bgr):
             pred_idx = probs.argmax().item()
 
         LABEL_TO_BRAND_FLAVOR = {
-            "Diet_Coke": ("Coca-Cola", "Diet Coke"),
-            "Canada_Dry": ("Canada Dry", "Ginger Ale"),
-            "Seltzer_Lime": ("Seltzer Water", "Lime")
+            "Dos_Equis_Lager": ("Dos Equis", "Lager"),
+            "Manzanita_Sol": ("Manzanita Sol", "Original"),
+            "Modelo_Especial": ("Modelo", "Especial"),
+            "Negra_Modelo": ("Modelo", "Negra"),
+            "New_Mix_Jimador_Paloma_Lata": ("New Mix", "Jimador Paloma Lata"),
+            "Pepsi_Black": ("Pepsi", "Black"),
+            "Pepsi_Light": ("Pepsi", "Light"),
+            "Pepsi_Regular": ("Pepsi", "Regular"),
         }
 
         raw_label = CLASS_NAMES[pred_idx]   # e.g., "Diet_Coke"

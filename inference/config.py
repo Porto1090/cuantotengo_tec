@@ -97,9 +97,17 @@ standard_drinks = {
     # "Seltzer Water": ["Lime", "Original", "Lemon", "Raspberry Lime"],
     # "Pepsi": ["Original", "Diet"],
     # "Sprite": ["Lemon-Lime"]
-    "Coca-Cola": ["Diet Coke"],          # For class: Diet_Coke
-    "Canada Dry": ["Ginger Ale"],        # For class: Canada_Dry
-    "Seltzer Water": ["Lime"]            # For class: Seltzer_Lime
+    # "Coca-Cola": ["Diet Coke"],          # For class: Diet_Coke
+    # "Canada Dry": ["Ginger Ale"],        # For class: Canada_Dry
+    # "Seltzer Water": ["Lime"],            # For class: Seltzer_Lime
+    "Dos Equis": ["Lager"],
+    "Manzanita Sol": ["Original"],
+    "Modelo": ["Especial"],
+    "Modelo": ["Negra"],
+    "New Mix": ["Jimador Paloma Lata"],
+    "Pepsi": ["Black"],
+    "Pepsi": ["Light"],
+    "Pepsi": ["Regular"],
 }
 
 # --- Cap Detection ---

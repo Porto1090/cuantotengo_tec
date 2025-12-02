@@ -8,11 +8,14 @@ from inference.main_inference import run_inference
 dummy_df = pd.DataFrame({"MARCA": [], "TOTAL": []})
 
 BRAND_MAP = {
-    "coca-cola-3L-2": "Coca Cola 3L Azucar",
-    "coca-cola-3L-1": "Coca Cola 3L Sin Azucar",
-    "coca-cola-600ml-1": "Coca Cola 600ml",
-    "fanta-3L-1": "Fanta 3L",
-    "sprite-3L-1": "Sprite 3L",
+    "can - Dos Equis - Lager": "Dos Equis Lager",
+    "can - Manzanita Sol - Original": "Manzanita Sol Original",
+    "can - Modelo - Especial": "Modelo Especial",
+    "can - Modelo - Negra": "Negra Modelo",
+    "can - New Mix - Jimador Paloma Lata": "New Mix Jimador Paloma Lata",
+    "can - Pepsi - Black": "Pepsi Black",
+    "can - Pepsi - Light": "Pepsi Light",
+    "can - Pepsi - Regular": "Pepsi Regular",
 }
 
 def format_output_for_df(brand_totals):
