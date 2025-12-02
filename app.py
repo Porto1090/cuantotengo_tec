@@ -7,11 +7,23 @@ from inference.main_inference import run_inference
 # PLACEHOLDER:
 dummy_df = pd.DataFrame({"MARCA": [], "TOTAL": []})
 
+BRAND_MAP = {
+    "coca-cola-3L-2": "Coca Cola 3L Azucar",
+    "coca-cola-3L-1": "Coca Cola 3L Sin Azucar",
+    "coca-cola-600ml-1": "Coca Cola 600ml",
+    "fanta-3L-1": "Fanta 3L",
+    "sprite-3L-1": "Sprite 3L",
+}
+
 def format_output_for_df(brand_totals):
     rows = []
     for key, value in brand_totals.items():
-        rows.append({"MARCA": key, "TOTAL": value})
-    return pd.DataFrame(rows)
+        pretty_name = BRAND_MAP.get(key, key)        
+        rows.append({"MARCA": pretty_name or key, "TOTAL": value})
+    
+        df = pd.DataFrame(rows)
+        df = df.sort_values(by="MARCA").reset_index(drop=True)
+    return df
 
 def preprocess_image(image_bytes, max_size=1024, jpeg_quality=70):
     np_arr = np.frombuffer(image_bytes, np.uint8)
