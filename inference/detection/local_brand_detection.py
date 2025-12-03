@@ -7,7 +7,7 @@ import cv2
 # -------------------------------------------------------------
 # Load model ONCE at import time (fast and efficient)
 # -------------------------------------------------------------
-CLASS_NAMES = ["Dos_Equis_Lager", "Manzanita_Sol", "Modelo_Especial", "Negro_Modelo", "New_Mix_Jimador_Paloma_Lata", "Pepsi_Black", "Pepsi_Light", "Pepsi_Regular"]      # ← your classes here
+CLASS_NAMES = ["Dos_Equis_Lager", "Manzanita_Sol", "Modelo_Especial", "Negra_Modelo", "New_Mix_Jimador_Paloma_Lata", "Pepsi_Black", "Pepsi_Light", "Pepsi_Regular"]      # ← your classes here
 MODEL_PATH = "brand_model_3class.pt"                           # ← your trained model file
 
 model = models.resnet18(weights=None)
