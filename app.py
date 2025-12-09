@@ -23,6 +23,7 @@ def format_output_for_df(brand_totals):
     for key, value in brand_totals.items():
         pretty_name = BRAND_MAP.get(key, key)        
         rows.append({"MARCA": pretty_name or key, "TOTAL": value})
+        print(f"Marca: {pretty_name}, Total: {value}")
     
         df = pd.DataFrame(rows)
         df = df.sort_values(by="MARCA").reset_index(drop=True)
