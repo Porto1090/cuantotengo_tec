@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import pandas as pd
 from inference.main_inference import run_inference
-import azure_blob_storage as azure_bs
+#import azure_blob_storage as azure_bs
 from datetime import datetime, timezone
 import uuid
 
@@ -54,40 +54,57 @@ def process(file, session_id, progress=gr.Progress()):
     print(f"Session ID: {session_id}")
     progress(0, desc="Leyendo imagen...")
 
-    if isinstance(file, dict):
-        image_bytes = file["data"]
-    else:
-        with open(file, "rb") as f:
-            image_bytes = f.read()
+    try:
+        if isinstance(file, dict):
+            image_bytes = file["data"]
+        else:
+            with open(file, "rb") as f:
+                image_bytes = f.read()
 
-    progress(0.2, desc="Preprocesando imagen...")
-    img_bgr = preprocess_image(image_bytes)
-
+        progress(0.2, desc="Preprocesando imagen...")
+        img_bgr = preprocess_image(image_bytes)
+    except Exception:
+        print("Failed to decode the image.")
+        return (
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(visible=True, value="# **Error:** No se pudo decodificar la imagen. Vuelve a intentarlo."),
+        )
+        
     progress(0.6, desc="Detectando productos...")
     brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time = \
         run_inference(img_bgr, sender_phone=None)
 
+    if not brand_totals:
+        print("No products detected in the image.")
+        return (
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(visible=True, value="# **Error:** No se detectaron productos en la imagen. Vuelve a intentarlo."),
+        )
+        
     progress(0.9, desc="Preparando resultados...")
 
     annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
     
+    real_timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     # === SAVE TO AZURE BLOB STORAGE ===
-    azure_bs.save_image_to_blob(annotated_rgb, session_id)
+    #azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp)
     log_dict = {
         "session_id": session_id,
-        "timestamp": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "timestamp": real_timestamp,
         "brand_totals": brand_totals,
-        "processing_time": processing_time,
+        "processing_time": f"{processing_time:.4f}",
     }
     
     print("Log Data:", log_dict)
-    azure_bs.save_log_to_blob(log_dict, session_id)
+    #azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp)
     
     df = format_output_for_df(brand_totals)
 
     progress(1.0, desc="Completado")
 
-    return df, annotated_rgb
+    return df, annotated_rgb, gr.update(visible=False)
 
 with gr.Blocks(title="CuantoTengo") as demo:
     session_id = gr.State()
@@ -100,25 +117,27 @@ with gr.Blocks(title="CuantoTengo") as demo:
 
     demo.load(fn=init_show_session, inputs=None, outputs=[session_id, session_text])
 
-    with gr.Row():
-        file_input = gr.File(label="Subir Imagen del Estante (JPG/PNG)", file_types=["image"])
+    # === INPUTS ===
+    file_input = gr.File(label="Subir Imagen del Estante (JPG/PNG)", file_types=["image"])
 
-    with gr.Row():
-        output_json = gr.DataFrame(value=dummy_df, visible=False)
-        
-    with gr.Row():
-        output_img = gr.Image(label="Detección Anotada", visible=False)
-        
+    # === OUTPUTS ===
+    output_json = gr.DataFrame(value=dummy_df, visible=False)    
+    output_img = gr.Image(label="Detección Anotada", visible=False)
+    
+    # === ERROR MESSAGES ===      
+    exception_message = gr.Markdown(visible=True, value="")
+    
+    # === INTERACTIONS ===
     def on_file_upload(file):
         if file is None:
             return (
-                gr.update(visible=False),
-                gr.update(visible=False)
+                gr.update(visible=False), # output_json
+                gr.update(visible=False), # output_img
             )
         else:
             return (
-                gr.update(visible=True),
-                gr.update(visible=True)
+                gr.update(visible=True), # output_json
+                gr.update(visible=True), # output_img
             )
 
     file_input.change(
@@ -130,11 +149,11 @@ with gr.Blocks(title="CuantoTengo") as demo:
     file_input.upload(
         fn=process,
         inputs=[file_input, session_id],
-        outputs=[output_json, output_img]
+        outputs=[output_json, output_img, exception_message],
     )
 
 import os
 # LAUNCHING THE APP
 
 port = int(os.environ.get("PORT", 7860))
-demo.launch(server_name="0.0.0.0", server_port=port)
+demo.launch(server_name="0.0.0.0", server_port=port, share=False)

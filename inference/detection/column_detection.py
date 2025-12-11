@@ -23,6 +23,9 @@ def match_and_extend_columns(image, front_caps, all_caps):
         column_lines (list): List of (slope, intercept, front_cap_x) for column line equations.
     """
     img_height, img_width = image.shape[:2]
+    if not front_caps:
+        print("[WARNING] No front caps detected — cannot compute columns.")
+        return []
     x_center = img_width // 2
     middle_front_cap = min(front_caps, key=lambda cap: abs(cap[0] - x_center))
 
@@ -127,6 +130,17 @@ def check_misaligned_columns(column_lines, vanishing_x, vanishing_y):
     Returns:
         dict: Mapping of misaligned front_cap_x to their (slope, intercept).
     """
+    
+    # SAFETY CHECK: no column lines, 
+    if not column_lines:
+        print("[WARNING] No column lines for misalignment check.")
+        return {}
+
+    # SAFETY CHECK: no vanishing point
+    if vanishing_x is None or vanishing_y is None:
+        print("[WARNING] Vanishing point not found — skipping misalignment detection.")
+        return {}
+    
     misaligned = {}
 
     x_min = vanishing_x - VANISHING_BOX_SIZE
@@ -170,6 +184,21 @@ def correct_misaligned_columns(column_lines, misaligned_columns, vanishing_x, va
     Returns:
         list: Corrected list of (slope, intercept, front_cap_x) lines.
     """
+    
+    # SAFETY:
+    if not column_lines:
+        print("[WARNING] No column lines to correct.")
+        return []
+
+    # SAFETY:
+    if not misaligned_columns:
+        return column_lines
+
+    # SAFETY:
+    if vanishing_x is None or vanishing_y is None:
+        print("[WARNING] No vanishing point — skipping misalignment corrections.")
+        return column_lines
+    
     corrected = []
 
     for slope, intercept, f_cx in column_lines:
