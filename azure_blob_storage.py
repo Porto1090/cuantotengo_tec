@@ -2,7 +2,6 @@ from azure.storage.blob import BlobServiceClient
 import json
 import cv2
 import os
-import datetime
 
 blob_client = BlobServiceClient.from_connection_string(
     os.environ["AZURE_STORAGE_CONNECTION_STRING"]

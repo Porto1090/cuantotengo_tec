@@ -3,7 +3,7 @@ import cv2
 import numpy as np
 import pandas as pd
 from inference.main_inference import run_inference
-#import azure_blob_storage as azure_bs
+import azure_blob_storage as azure_bs
 from datetime import datetime, timezone
 import uuid
 
@@ -89,7 +89,7 @@ def process(file, session_id, progress=gr.Progress()):
     
     real_timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     # === SAVE TO AZURE BLOB STORAGE ===
-    #azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp)
+    azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp)
     log_dict = {
         "session_id": session_id,
         "timestamp": real_timestamp,
@@ -98,7 +98,7 @@ def process(file, session_id, progress=gr.Progress()):
     }
     
     print("Log Data:", log_dict)
-    #azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp)
+    azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp)
     
     df = format_output_for_df(brand_totals)
 
