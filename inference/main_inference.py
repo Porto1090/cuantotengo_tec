@@ -184,6 +184,7 @@ def run_inference(image, sender_phone=None):
     # test run time end        
     
     # total time completition
-    print(f"\nTotal time: {sum(timings.values()):.3f}s")
+    processing_time = sum(timings.values())
+    print(f"\nTotal time: {processing_time:.3f}s")
 
-    return brand_totals, annotated_image, cap_data, front_bottles, bottle_brand_mapping, lane_totals
+    return brand_totals, annotated_image, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time

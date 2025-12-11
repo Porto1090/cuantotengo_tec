@@ -3,6 +3,9 @@ import cv2
 import numpy as np
 import pandas as pd
 from inference.main_inference import run_inference
+import azure_blob_storage as azure_bs
+from datetime import datetime, timezone
+import uuid
 
 # PLACEHOLDER:
 dummy_df = pd.DataFrame({"MARCA": [], "TOTAL": []})
@@ -18,12 +21,15 @@ BRAND_MAP = {
     "can - Pepsi - Regular": "Pepsi Regular",
 }
 
+def generate_short_hex():
+    return uuid.uuid4().hex[:6].upper()
+
 def format_output_for_df(brand_totals):
     rows = []
     for key, value in brand_totals.items():
-        pretty_name = BRAND_MAP.get(key, key)        
+        pretty_name = BRAND_MAP.get(key, key)
         rows.append({"MARCA": pretty_name or key, "TOTAL": value})
-        print(f"Marca: {pretty_name}, Total: {value}")
+        # print(f"Marca: {pretty_name}, Total: {value}")
     
         df = pd.DataFrame(rows)
         df = df.sort_values(by="MARCA").reset_index(drop=True)
@@ -44,7 +50,8 @@ def preprocess_image(image_bytes, max_size=1024, jpeg_quality=70):
     _, jpg = cv2.imencode(".jpg", img, encode_param)
     return cv2.imdecode(jpg, cv2.IMREAD_COLOR)
 
-def process(file, progress=gr.Progress()):
+def process(file, session_id, progress=gr.Progress()):
+    print(f"Session ID: {session_id}")
     progress(0, desc="Leyendo imagen...")
 
     if isinstance(file, dict):
@@ -57,12 +64,25 @@ def process(file, progress=gr.Progress()):
     img_bgr = preprocess_image(image_bytes)
 
     progress(0.6, desc="Detectando productos...")
-    brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals = \
+    brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time = \
         run_inference(img_bgr, sender_phone=None)
 
     progress(0.9, desc="Preparando resultados...")
 
     annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
+    
+    # === SAVE TO AZURE BLOB STORAGE ===
+    azure_bs.save_image_to_blob(annotated_rgb, session_id)
+    log_dict = {
+        "session_id": session_id,
+        "timestamp": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "brand_totals": brand_totals,
+        "processing_time": processing_time,
+    }
+    
+    print("Log Data:", log_dict)
+    azure_bs.save_log_to_blob(log_dict, session_id)
+    
     df = format_output_for_df(brand_totals)
 
     progress(1.0, desc="Completado")
@@ -70,7 +90,15 @@ def process(file, progress=gr.Progress()):
     return df, annotated_rgb
 
 with gr.Blocks(title="CuantoTengo") as demo:
+    session_id = gr.State()
     gr.Markdown("# CuantoTengo - Recuento de Estantes de Bebidas")
+    session_text = gr.Markdown("### ID Sesión: generando..._")
+    
+    def init_show_session():
+        sid = generate_short_hex()
+        return sid, f"## ID Sesión: **{sid}**"
+
+    demo.load(fn=init_show_session, inputs=None, outputs=[session_id, session_text])
 
     with gr.Row():
         file_input = gr.File(label="Subir Imagen del Estante (JPG/PNG)", file_types=["image"])
@@ -101,7 +129,7 @@ with gr.Blocks(title="CuantoTengo") as demo:
     
     file_input.upload(
         fn=process,
-        inputs=file_input,
+        inputs=[file_input, session_id],
         outputs=[output_json, output_img]
     )
 
