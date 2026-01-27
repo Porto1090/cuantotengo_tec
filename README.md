@@ -44,7 +44,7 @@ From a single image, the system:
     <td>
       <img src="https://img.shields.io/badge/OpenCV-150458.svg?&logo=opencv&logoColor=white" alt="OpenCV"/>
       <img src="https://img.shields.io/badge/PyTorch-150458.svg?&logo=pytorch&logoColor=white" alt="PyTorch"/>
-      <img src="https://img.shields.io/badge/Ultralytics YOLO-150458.svg?&logo=pytorch&logoColor=white" alt="Ultralytics YOLO"/>
+      <img src="https://img.shields.io/badge/Ultralytics YOLO-150458.svg?&logo=yolo&logoColor=white" alt="Ultralytics YOLO"/>
     </td>
   </tr>
 </table>
