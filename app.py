@@ -73,7 +73,7 @@ def process(file, session_id, progress=gr.Progress()):
         
     progress(0.6, desc="Detectando productos...")
     brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time = \
-        run_inference(img_bgr, sender_phone=None)
+        run_inference(img_bgr)
 
     if not brand_totals:
         print("No products detected in the image.")
