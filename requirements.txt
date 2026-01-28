@@ -86,3 +86,4 @@ ultralytics-thop==2.0.18
 urllib3==2.5.0
 uvicorn==0.38.0
 yarl==1.22.0
+azure-storage-blob

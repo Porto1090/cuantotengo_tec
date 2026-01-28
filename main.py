@@ -1,8 +1,8 @@
 import requests
-from flask import Flask, request, jsonify
+from requests.auth import HTTPBasicAuth
+from flask import Flask, request, jsonify, g
 from twilio.twiml.messaging_response import MessagingResponse
 from io import BytesIO
-from requests.auth import HTTPBasicAuth
 from PIL import Image
 import numpy as np
 from datetime import datetime, timezone
@@ -16,7 +16,6 @@ from inference.config import TOPS_MODEL_PATH, MODEL_VERSIONS
 
 import logging, time, uuid
 from contextlib import contextmanager
-from flask import g
 
 logging.basicConfig(level=logging.INFO)  # or DEBUG
 log = logging.getLogger("cuantotengo")
