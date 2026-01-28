@@ -1,11 +1,8 @@
 import cv2
-import numpy as np
 import base64
-import io
-from collections import Counter
+import numpy as np
 from tqdm import tqdm
-from rapidfuzz import process, fuzz
-
+from rapidfuzz import process
 
 def soft_nms(boxes, scores, iou_threshold=0.5, sigma=0.5, score_threshold=0.3):
     boxes = np.array(boxes)

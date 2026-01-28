@@ -1,8 +1,12 @@
+import cv2
 import matplotlib
+import numpy as np
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
-import cv2
-import numpy as np
+
+"""
+THIS MODULE IS NOT NECESSARILY BEING USED IN THE CURRENT PIPELINE.
+"""
 
 def plot_cap_centers_by_column(image, cap_columns, save_path="plots/cap_centers.png"):
     image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
@@ -150,7 +154,6 @@ def plot_cap_centers_by_column(image, cap_columns):
     plt.close()  
     
 
-
 def plot_corrected_columns(image_path, column_lines, corrected_lines, misaligned_columns, vanishing_x, vanishing_y, front_caps):
     """
     Overlays original and corrected columns with vanishing region, ensuring start at front caps.
@@ -210,6 +213,7 @@ def plot_corrected_columns(image_path, column_lines, corrected_lines, misaligned
     # plt.axis("off")
     # plt.show()
 
+
 def plot_vanishing_point(image_path, intersections, labels, vanishing_x, vanishing_y):
     """Plots detected intersections, clustered vanishing points, and final vanishing region."""
     image = cv2.imread(image_path)
@@ -242,6 +246,7 @@ def plot_vanishing_point(image_path, intersections, labels, vanishing_x, vanishi
     #plt.legend()
     # plt.axis("off")
     # plt.show()
+
 
 def plot_nearby_caps_with_labels(image, front_caps, all_caps, x_tolerance=20):
     """
@@ -290,3 +295,4 @@ def plot_nearby_caps_with_labels(image, front_caps, all_caps, x_tolerance=20):
     plt.axis("off")
     plt.savefig("my_plot.png")  # Saves the figure to a PNG file
     plt.close()  
+    

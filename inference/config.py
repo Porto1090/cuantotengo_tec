@@ -1,5 +1,5 @@
 """
-    # Configuration parameters for inference pipeline
+Configuration parameters for inference pipeline
 """ 
 
 # TODO: Better version control than manually updating here
@@ -10,12 +10,12 @@ MODEL_VERSIONS = {
 }
 
 # --- Column Detection ---
-DISTANCE_THRESHOLD_TO_LINE = 200  # Max allowed perpendicular distance from column line
+DISTANCE_THRESHOLD_TO_LINE = 200  # Max allowed perpendicular distance from column line NOTE: not used currently
 DISTANCE_THRESHOLD_TO_FRONT_CAP = 900  # Max allowed direct distance from front cap
 VANISHING_BOX_SIZE = 20  # Tight region for vanishing point estimation
-OUTLIER_THRESHOLD = 150  # Threshold to determine misaligned columns
+OUTLIER_THRESHOLD = 150  # Threshold to determine misaligned columns NOTE: not used currently
 
-TOPS_MODEL_PATH = "bottle_can_cap_yolo_weights.pt"
+TOPS_MODEL_PATH = "bottle_can_cap_yolo_weights.pt" # NOTE: not used currently
 
 # --- Cap Detection ---
 CAP_MODEL_PATH = "models/bottle_can_cap_yolo_weights.pt"
@@ -118,10 +118,7 @@ standard_drinks = {
     # "Seltzer Water": ["Lime"],            # For class: Seltzer_Lime
     "Dos Equis": ["Lager"],
     "Manzanita Sol": ["Original"],
-    "Modelo": ["Especial"],
-    "Modelo": ["Negra"],
+    "Modelo": ["Especial", "Especial"],
     "New Mix": ["Jimador Paloma Lata"],
-    "Pepsi": ["Black"],
-    "Pepsi": ["Light"],
-    "Pepsi": ["Regular"],
+    "Pepsi": ["Black", "Light", "Regular"],
 }

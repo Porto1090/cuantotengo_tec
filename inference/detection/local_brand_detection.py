@@ -1,7 +1,7 @@
 import cv2
 import torch
 from PIL import Image
-import torch.nn.functional as F
+import torch.nn.functional as tnnf
 from torchvision import transforms, models
 
 # -------------------------------------------------------------
@@ -56,7 +56,7 @@ def get_brands_from_image(front_bottles, image_bgr):
         # Predict
         with torch.no_grad():
             logits = model(x)
-            probs = F.softmax(logits, dim=1)
+            probs = tnnf.softmax(logits, dim=1)
             pred_idx = probs.argmax().item()
 
         LABEL_TO_BRAND_FLAVOR = {

@@ -1,9 +1,8 @@
-# TODO: Clean this pipeline up. It is not modular at all as of now, making it very, very hard to implement changes.
-
-import cv2
-from ultralytics import YOLO
-import concurrent.futures
+import time
 import torch
+import logging
+import concurrent.futures as cf
+from ultralytics import YOLO
 
 from inference.detection.cap_detection import detect_caps
 from inference.detection.column_detection import (
@@ -15,20 +14,13 @@ from inference.detection.column_detection import (
 )
 from inference.detection.front_detection import detect_and_match_fronts, detect_front_bottles
 from inference.detection.local_brand_detection import get_brands_from_image, match_brands_to_bottles
-from inference.config import standard_drinks
+from inference.config import CAP_MODEL_PATH, FRONT_BOTTLE_MODEL_PATH, standard_drinks
 from inference.final_aggregation import (
     match_front_caps_to_bottles,
     compute_brand_counts,
     match_gpt_output_to_list
 )
 from inference.image_utils import count_caps_per_column
-from inference.config import CAP_MODEL_PATH, FRONT_BOTTLE_MODEL_PATH
-
-# test run time start
-import time
-import logging
-log = logging.getLogger("cuantotengo")
-# test run time end
 
 def get_device():
     if torch.cuda.is_available():
@@ -37,6 +29,7 @@ def get_device():
         return "mps"
     return "cpu"
 
+log = logging.getLogger("cuantotengo")
 DEVICE = get_device()
 print("USING DEVICE:", DEVICE)
 
@@ -65,7 +58,7 @@ def run_inference(image, sender_phone=None):
     #send_message(sender_phone, "Counting products...")
     # cap_model = YOLO(CAP_MODEL_PATH)
     if DEVICE != "cpu":
-        with concurrent.futures.ThreadPoolExecutor() as executor:
+        with cf.ThreadPoolExecutor() as executor:
             future_caps = executor.submit(detect_caps, image, cap_model)
             future_front = executor.submit(detect_front_bottles, image, front_model)
 

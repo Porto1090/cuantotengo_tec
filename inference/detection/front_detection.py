@@ -1,6 +1,8 @@
 import cv2
-from inference.config import FRONT_DETECTION_CONFIDENCE, FRONT_CAP_OVERLAP_THRESHOLD
-
+from inference.config import (
+    FRONT_DETECTION_CONFIDENCE,
+    FRONT_CAP_OVERLAP_THRESHOLD
+)
 
 def detect_front_bottles(image, model):
     """
