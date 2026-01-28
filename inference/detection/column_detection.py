@@ -1,4 +1,3 @@
-import cv2
 import numpy as np
 from sklearn.cluster import DBSCAN
 from itertools import combinations
@@ -6,7 +5,6 @@ from inference.config import (
     DISTANCE_THRESHOLD_TO_FRONT_CAP,
     VANISHING_BOX_SIZE
 )
-
 
 def match_and_extend_columns(image, front_caps, all_caps):
     """
@@ -63,7 +61,6 @@ def match_and_extend_columns(image, front_caps, all_caps):
             column_lines.append((None, None, f_cx))
 
     return column_lines
-
 
 def compute_intersections(column_lines):
     """

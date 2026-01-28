@@ -1,16 +1,10 @@
-import cv2
-import numpy as np
-from tqdm import tqdm
-from ultralytics import YOLO
+from inference.image_utils import soft_nms
 from inference.config import (
-    CAP_MODEL_PATH,
     CAP_DETECTION_CONFIDENCE,
     SOFT_NMS_IOU_THRESHOLD,
     SOFT_NMS_SIGMA,
     SOFT_NMS_SCORE_THRESHOLD,
 )
-from inference.image_utils import soft_nms
-
 
 def detect_caps(image, cap_model):
     results = cap_model.predict(image, conf=CAP_DETECTION_CONFIDENCE)

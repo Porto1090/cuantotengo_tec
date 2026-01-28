@@ -29,7 +29,7 @@ def format_output_for_df(brand_totals):
     for key, value in brand_totals.items():
         pretty_name = BRAND_MAP.get(key, key)
         rows.append({"MARCA": pretty_name or key, "TOTAL": value})
-        # print(f"Marca: {pretty_name}, Total: {value}")
+        print(f"Marca: {pretty_name}, Total: {value}")
     
         df = pd.DataFrame(rows)
         df = df.sort_values(by="MARCA").reset_index(drop=True)
@@ -97,7 +97,7 @@ def process(file, session_id, progress=gr.Progress()):
         "processing_time": f"{processing_time:.4f}",
     }
     
-    print("Log Data:", log_dict)
+    #print("Log Data:", log_dict)
     azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp)
     
     df = format_output_for_df(brand_totals)

@@ -1,14 +1,14 @@
+import cv2
 import torch
+from PIL import Image
 import torch.nn.functional as F
 from torchvision import transforms, models
-from PIL import Image
-import cv2
 
 # -------------------------------------------------------------
 # Load model ONCE at import time (fast and efficient)
 # -------------------------------------------------------------
 CLASS_NAMES = ["Dos_Equis_Lager", "Manzanita_Sol", "Modelo_Especial", "Negra_Modelo", "New_Mix_Jimador_Paloma_Lata", "Pepsi_Black", "Pepsi_Light", "Pepsi_Regular"]      # ← your classes here
-MODEL_PATH = "brand_model_3class.pt"                           # ← your trained model file
+MODEL_PATH = "./models/brand_model_3class.pt"                           # ← your trained model file
 
 model = models.resnet18(weights=None)
 model.fc = torch.nn.Linear(model.fc.in_features, len(CLASS_NAMES))
@@ -100,5 +100,3 @@ def match_brands_to_bottles(front_bottles, brands_list):
         brands_list = brands_list[:min_len]
     
     return {tuple(bbox.values()): brand for bbox, brand in zip(front_bottles, brands_list)}
-
-    

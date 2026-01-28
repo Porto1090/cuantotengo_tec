@@ -1,9 +1,0 @@
-Steps I took to get the database pipelines running on a Mac:
-
-0. Get the keys.py file and put it inside the database directory
-1. Pip install the requirements
-2. On your terminal, run: brew install unixodbc
-3. Install the SQL Server ODBC Driver. On your terminal, run:
-    a) brew tap microsoft/mssql-release https://github.com/Microsoft/homebrew-mssql-release
-    b) brew update
-    c) HOMEBREW_NO_AUTO_UPDATE=1 brew install msodbcsql17

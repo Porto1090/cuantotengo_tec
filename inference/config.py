@@ -1,3 +1,7 @@
+"""
+    # Configuration parameters for inference pipeline
+""" 
+
 # TODO: Better version control than manually updating here
 MODEL_VERSIONS = {
     "cap_model_version": 0.1,
@@ -12,6 +16,18 @@ VANISHING_BOX_SIZE = 20  # Tight region for vanishing point estimation
 OUTLIER_THRESHOLD = 150  # Threshold to determine misaligned columns
 
 TOPS_MODEL_PATH = "bottle_can_cap_yolo_weights.pt"
+
+# --- Cap Detection ---
+CAP_MODEL_PATH = "models/bottle_can_cap_yolo_weights.pt"
+CAP_DETECTION_CONFIDENCE = 0.3
+SOFT_NMS_IOU_THRESHOLD = 0.5
+SOFT_NMS_SIGMA = 0.5
+SOFT_NMS_SCORE_THRESHOLD = 0.3
+
+# --- Front Bottle Detection ---
+FRONT_BOTTLE_MODEL_PATH = "models/bottlefront_weights.pt"
+FRONT_DETECTION_CONFIDENCE = 0.5
+FRONT_CAP_OVERLAP_THRESHOLD = 0.9  # 90% of cap inside front box
 
 # --- Product Dictionary Placeholder ---
 # Standardized Product List: {brand_name: [flavors]}
@@ -109,32 +125,3 @@ standard_drinks = {
     "Pepsi": ["Light"],
     "Pepsi": ["Regular"],
 }
-
-# --- Cap Detection ---
-CAP_MODEL_PATH = "models/bottle_can_cap_yolo_weights.pt"
-CAP_DETECTION_CONFIDENCE = 0.3
-SOFT_NMS_IOU_THRESHOLD = 0.5
-SOFT_NMS_SIGMA = 0.5
-SOFT_NMS_SCORE_THRESHOLD = 0.3
-
-# --- Front Bottle Detection ---
-FRONT_BOTTLE_MODEL_PATH = "models/bottlefront_weights.pt"
-FRONT_DETECTION_CONFIDENCE = 0.5
-FRONT_CAP_OVERLAP_THRESHOLD = 0.9  # 90% of cap inside front box
-
-# --- Brand Detection ---
-GPT_SYSTEM_PROMPT = (
-    "You are an expert in identifying beverage brands. Analyze the provided bottle image "
-    "and return its EXACT brand and flavor details in the STRICT format: 'BRAND - FLAVOR'."
-)
-GPT_USER_PROMPT_TEMPLATE = (
-    "Identify the beverage brand and flavor in this image and answer as 'BRAND - FLAVOR'. "
-    "Here is a dictionary with the brands (dictionary keys) and their corresponding flavors (dictionary values) you should consider:\n{standard_drinks}\n"
-    "Please, restrict your predictions exclusively to brands and flavors in this dictionary. All products in the image are in the dictionary, so make your best guess from the list, even if unsure."
-)
-GPT_MODEL = "gpt-4o"
-GPT_TEMPERATURE = 0.0
-GPT_MAX_TOKENS = 100
-
-# --- Misc ---
-MODEL_VERSION = "0"

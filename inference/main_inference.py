@@ -6,8 +6,6 @@ import concurrent.futures
 import torch
 
 from inference.detection.cap_detection import detect_caps
-from inference.detection.front_detection import detect_and_match_fronts, detect_front_bottles
-from inference.detection.local_brand_detection import get_brands_from_image, match_brands_to_bottles
 from inference.detection.column_detection import (
     match_and_extend_columns,
     compute_intersections,
@@ -15,13 +13,14 @@ from inference.detection.column_detection import (
     check_misaligned_columns,
     correct_misaligned_columns
 )
+from inference.detection.front_detection import detect_and_match_fronts, detect_front_bottles
+from inference.detection.local_brand_detection import get_brands_from_image, match_brands_to_bottles
+from inference.config import standard_drinks
 from inference.final_aggregation import (
     match_front_caps_to_bottles,
     compute_brand_counts,
     match_gpt_output_to_list
 )
-from services.whatsapp import send_message
-from inference.config import standard_drinks
 from inference.image_utils import count_caps_per_column
 from inference.config import CAP_MODEL_PATH, FRONT_BOTTLE_MODEL_PATH
 
