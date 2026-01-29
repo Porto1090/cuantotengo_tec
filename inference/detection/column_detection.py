@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 from sklearn.cluster import DBSCAN
 from itertools import combinations
 from inference.config import (
@@ -6,6 +7,50 @@ from inference.config import (
     VANISHING_BOX_SIZE
 )
 
+def annotate_column_counts(image, lane_totals):
+    annotated = image.copy()
+    h, w = annotated.shape[:2]
+
+    for bbox, count in lane_totals.items():
+        x1, y1, x2, y2 = map(int, bbox)
+
+        # Clamp to image bounds
+        x1 = max(0, min(w - 1, x1))
+        x2 = max(0, min(w - 1, x2))
+        y1 = max(0, min(h - 1, y1))
+        y2 = max(0, min(h - 1, y2))
+
+        # Column center
+        x_center = (x1 + x2) // 2
+        y_top = max(40, y1 - 10)
+
+        text = str(count)
+
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = max(1.2, w / 1200)
+        thickness = 3
+
+        (tw, th), _ = cv2.getTextSize(text, font, font_scale, thickness)
+
+        cv2.rectangle(
+            annotated,
+            (x_center - tw // 2 - 8, y_top - th - 12),
+            (x_center + tw // 2 + 8, y_top + 8),
+            (0, 0, 0),
+            -1
+        )
+        cv2.putText(
+            annotated,
+            text,
+            (x_center - tw // 2, y_top),
+            font,
+            font_scale,
+            (0, 255, 0),
+            thickness,
+            cv2.LINE_AA
+        )
+
+    return annotated
 
 def match_and_extend_columns(image, front_caps, all_caps):
     """

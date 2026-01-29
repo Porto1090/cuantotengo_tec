@@ -18,7 +18,8 @@ from inference.detection.column_detection import (
     compute_intersections,
     cluster_vanishing_points,
     check_misaligned_columns,
-    correct_misaligned_columns
+    correct_misaligned_columns,
+    annotate_column_counts
 )
 from inference.detection.local_brand_detection import (
     get_brands_from_image,
@@ -59,6 +60,9 @@ class InferencePipeline:
         brand_totals, lane_totals, bottle_brand_mapping = self._brand_aggregation(
             image, cap_data, front_bottles, corrected_lines, timings
         )
+        # annotated_image = self._additional_annotations(
+        #     annotated_image, lane_totals
+        # )
         
         processing_total = sum(timings.values())
         self._log_timings(timings, processing_total)
@@ -138,6 +142,13 @@ class InferencePipeline:
         timings["brand_aggregation"] = time.time() - t0
         return brand_totals, lane_totals, bottle_brand_mapping
 
+    def _additional_annotations(self, annotated_image, lane_totals):
+        annotated_image = annotate_column_counts(
+            annotated_image,
+            lane_totals
+        )
+        return annotated_image
+    
     def _log_timings(self, timings, total):
         log.info("Timing summary (seconds): %s", timings)
         for k, v in timings.items():

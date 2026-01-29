@@ -91,7 +91,7 @@ def process(file, session_id, progress=gr.Progress()):
     
     real_timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     # === SAVE TO AZURE BLOB STORAGE ===
-    azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp)
+    # azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp)
     log_dict = {
         "session_id": session_id,
         "timestamp": real_timestamp,
