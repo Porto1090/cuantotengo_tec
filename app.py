@@ -1,11 +1,13 @@
-import gradio as gr
 import cv2
+import uuid
+import string
+import secrets
 import numpy as np
+import gradio as gr
 import pandas as pd
-from inference.main_inference import InferencePipeline
 import azure_blob_storage as azure_bs
 from datetime import datetime, timezone
-import uuid
+from inference.main_inference import InferencePipeline
 
 # PLACEHOLDER:
 dummy_df = pd.DataFrame({"MARCA": [], "TOTAL": []})
@@ -21,8 +23,22 @@ BRAND_MAP = {
     "can - Pepsi - Regular": "Pepsi Regular",
 }
 
+BRAND_MAP_IMAGES = {
+    "Dos Equis Lager": "https://www.freepnglogos.com/uploads/dos-equis-png-logo/cerzava-xx-dos-equis-png-logo-1.png",
+    "Manzanita Sol Original": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxMCabVMXf5qKgquEimWwigopirZIG-3792Q&s",
+    "Modelo Especial": "https://1000logos.net/wp-content/uploads/2023/05/Modelo-Logo.png",
+    "Negra Modelo": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Coca-Cola_logo.svg",
+    "New Mix Jimador Paloma Lata": "https://www.kroger.com/product/images/large/top/0074460721004",
+    "Pepsi Black": "https://s3.amazonaws.com/cdn.designcrowd.com/blog/The-Pepsi-Logo-History/1973-pepsi-logo.png",
+    "Pepsi Light": "https://s3.amazonaws.com/cdn.designcrowd.com/blog/The-Pepsi-Logo-History/1973-pepsi-logo.png",
+    "Pepsi Regular": "https://s3.amazonaws.com/cdn.designcrowd.com/blog/The-Pepsi-Logo-History/1973-pepsi-logo.png",
+}
+
 def generate_short_hex():
-    return uuid.uuid4().hex[:6].upper()
+    letters = [secrets.choice(string.ascii_uppercase) for _ in range(2)]
+    numbers = [secrets.choice(string.digits) for _ in range(4)]
+    return "".join(letters + numbers)
+    #return uuid.uuid4().hex[:6].upper()
 
 def format_output_for_df(brand_totals):
     rows = []
@@ -33,8 +49,54 @@ def format_output_for_df(brand_totals):
     
         df = pd.DataFrame(rows)
         df = df.sort_values(by="MARCA").reset_index(drop=True)
-    print("\n")
     return df
+
+def format_output_html(brand_totals):
+    rows = ""
+    bg_colors = ["#222222", "#333333"]
+
+    for idx, (key, value) in enumerate(brand_totals.items()):
+        pretty_name = BRAND_MAP.get(key, key)
+        img = BRAND_MAP_IMAGES.get(
+            pretty_name,
+            "https://upload.wikimedia.org/wikipedia/commons/c/ce/Coca-Cola_logo.svg"
+        )
+
+        bg = bg_colors[idx % 2]
+
+        rows += f"""
+        <tr style="background-color:{bg}; border-bottom:1px solid #e5e7eb;">
+            <td style="background-color:#FFFFFF; margin: auto; text-align:center; padding:10px; width:80px;">
+                <img src="{img}" width="64" alt="{pretty_name}" />
+            </td>
+            <td style="padding:8px; text-align:left; font-size:24px;">
+                {pretty_name}
+            </td>
+            <td style="padding:8px; font-weight:600; text-align:center; font-size:24px;">
+                {value}
+            </td>
+        </tr>
+        """
+
+    return f"""
+    <table style="
+        width:100%;
+        border-collapse: collapse;
+        font-size: 16px;
+        background-color:#FFFFFF;
+    ">
+        <thead>
+            <tr style="background-color:#000000; color:white;">
+                <th style="padding:12px; width:80px;"></th>
+                <th style="padding:12px; text-align:left;">MARCA</th>
+                <th style="padding:12px; text-align:center;">TOTAL</th>
+            </tr>
+        </thead>
+        <tbody>
+            {rows}
+        </tbody>
+    </table>
+    """
 
 def preprocess_image(image_bytes, max_size=1024, jpeg_quality=70):
     np_arr = np.frombuffer(image_bytes, np.uint8)
@@ -52,7 +114,7 @@ def preprocess_image(image_bytes, max_size=1024, jpeg_quality=70):
     return cv2.imdecode(jpg, cv2.IMREAD_COLOR)
 
 def process(file, session_id, progress=gr.Progress()):
-    print(f"Session ID: {session_id}")
+    print(f"\nSession ID: {session_id}")
     progress(0, desc="Leyendo imagen...")
 
     try:
@@ -74,8 +136,7 @@ def process(file, session_id, progress=gr.Progress()):
         
     progress(0.6, desc="Detectando productos...")
     pipeline = InferencePipeline()
-    brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time = \
-        pipeline.run(img_bgr)
+    brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time = pipeline.run(img_bgr)
 
     if not brand_totals:
         print("No products detected in the image.")
@@ -91,26 +152,28 @@ def process(file, session_id, progress=gr.Progress()):
     
     real_timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
     # === SAVE TO AZURE BLOB STORAGE ===
-    # azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp)
+    azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp)
     log_dict = {
         "session_id": session_id,
         "timestamp": real_timestamp,
         "brand_totals": brand_totals,
         "processing_time": f"{processing_time:.4f}",
     }
-    
-    #print("Log Data:", log_dict)
     azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp)
-    
-    df = format_output_for_df(brand_totals)
 
-    progress(1.0, desc="Completado")
-
-    return df, annotated_rgb, gr.update(visible=False)
+    SHOW_IMAGES = True
+    if (SHOW_IMAGES):
+        html_table = format_output_html(brand_totals)
+        progress(1.0, desc="Completado")
+        return html_table, annotated_rgb, gr.update(visible=False)
+    else: 
+        df = format_output_for_df(brand_totals)
+        progress(1.0, desc="Completado")
+        return df, annotated_rgb, gr.update(visible=False)
 
 with gr.Blocks(title="CuantoTengo") as demo:
     session_id = gr.State()
-    gr.Markdown("# CuantoTengo - Recuento de Estantes de Bebidas")
+    gr.Markdown("<h1 style='font-size: 48px;'>CuantoTengo</h1>")
     session_text = gr.Markdown("### ID Sesión: generando..._")
     
     def init_show_session():
@@ -120,38 +183,69 @@ with gr.Blocks(title="CuantoTengo") as demo:
     demo.load(fn=init_show_session, inputs=None, outputs=[session_id, session_text])
 
     # === INPUTS ===
-    file_input = gr.File(label="Subir Imagen del Estante (JPG/PNG)", file_types=["image"])
+    file_input = gr.File(label="PULSA AQUÍ PARA TOMAR LA FOTO", file_types=["image"])
 
     # === OUTPUTS ===
-    output_json = gr.DataFrame(value=dummy_df, visible=False)    
-    output_img = gr.Image(label="Detección Anotada", visible=False)
+    reset_btn = gr.Button(
+        "TOMAR OTRA FOTO",
+        visible=False,
+        size="lg"
+    )
+    # output_json = gr.DataFrame(value=dummy_df, visible=False)
+    output_json = gr.HTML(visible=False)
+    output_img = gr.Image(label="IMAGEN GENERADA", visible=False)
     
     # === ERROR MESSAGES ===      
     exception_message = gr.Markdown(visible=True, value="")
     
     # === INTERACTIONS ===
+    def reset_ui():
+        return (
+            None,  # file_input
+            gr.update(visible=False),  # output_json
+            gr.update(visible=False),  # output_img
+            gr.update(visible=True, value=""),  # exception_message
+            gr.update(visible=False),  # reset_btn
+        )
+        
     def on_file_upload(file):
         if file is None:
             return (
+                gr.update(visible=True), # file_input
                 gr.update(visible=False), # output_json
                 gr.update(visible=False), # output_img
+                gr.update(visible=False),  # reset_btn
             )
         else:
             return (
+                gr.update(visible=False), # file_input
                 gr.update(visible=True), # output_json
                 gr.update(visible=True), # output_img
+                gr.update(visible=True),  # reset_btn
             )
 
     file_input.change(
         fn=on_file_upload,
         inputs=file_input,
-        outputs=[output_json, output_img],
+        outputs=[file_input, output_json, output_img, reset_btn],
     )
     
     file_input.upload(
         fn=process,
         inputs=[file_input, session_id],
         outputs=[output_json, output_img, exception_message],
+    )
+    
+    reset_btn.click(
+        fn=reset_ui,
+        inputs=None,
+        outputs=[
+            file_input,
+            output_json,
+            output_img,
+            exception_message,
+            reset_btn
+        ]
     )
 
 import os
