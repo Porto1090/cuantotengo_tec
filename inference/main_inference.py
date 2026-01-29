@@ -1,140 +1,145 @@
 import time
 import logging
-import concurrent.futures as cf
+import concurrent.futures as conf
 
 import inference.config as cfg
 from inference.runtime.device import get_device
 from inference.runtime.models import load_models
+
 from inference.detection.cap_detection import (
-    detect_caps # 1
+    detect_caps
 )
 from inference.detection.front_detection import (
-    detect_front_bottles, # 2
-    detect_and_match_fronts # 3
+    detect_front_bottles,
+    detect_and_match_fronts
 )
 from inference.detection.column_detection import (
-    match_and_extend_columns, # 4
-    compute_intersections, # 5 
-    cluster_vanishing_points, # 6
-    check_misaligned_columns, # 7
-    correct_misaligned_columns # 8
+    match_and_extend_columns,
+    compute_intersections,
+    cluster_vanishing_points,
+    check_misaligned_columns,
+    correct_misaligned_columns
 )
 from inference.detection.local_brand_detection import (
-    get_brands_from_image, # 9
-    match_brands_to_bottles # 11
+    get_brands_from_image,
+    match_brands_to_bottles
 )
 from inference.final_aggregation import (
-    match_gpt_output_to_list, # 10
-    match_front_caps_to_bottles, # 12
-    compute_brand_counts, # 14
+    match_gpt_output_to_list,
+    match_front_caps_to_bottles,
+    compute_brand_counts,
 )
 from inference.image_utils import (
-    count_caps_per_column, # 13
+    count_caps_per_column
 )
 
 log = logging.getLogger("cuantotengo")
 
-DEVICE = get_device()
-print("USING DEVICE:", DEVICE)
+class InferencePipeline:
+    def __init__(self):
+        self.device = get_device()
+        log.info("Using device: %s", self.device)
+        self.models = load_models(
+            self.device,
+            cfg.CAP_MODEL_PATH,
+            cfg.FRONT_BOTTLE_MODEL_PATH
+        )
+        log.info("YOLO models loaded.")
 
-cap_model, front_model = load_models(
-    DEVICE,
-    cfg.CAP_MODEL_PATH,
-    cfg.FRONT_BOTTLE_MODEL_PATH
-)
-print("YOLO models loaded.")
-
-
-def run_inference(image):
-    """Runs the full product detection pipeline and returns brand counts and annotated image."""
-    timings = {}
-
-    # 1. Identify product tops (aka caps)
-    t0 = time.time()
-
-    if DEVICE != "cpu":
-        with cf.ThreadPoolExecutor() as executor:
-            future_caps = executor.submit(detect_caps, image, cap_model)
-            future_front = executor.submit(detect_front_bottles, image, front_model)
-
-            cap_data = future_caps.result()
-            front_bottles = future_front.result()
-    else:
-        cap_data = detect_caps(image, cap_model)
-        front_bottles = detect_front_bottles(image, front_model)
-
-    timings["parallel_caps_and_front_bottles"] = time.time() - t0
-
-    # 2. Identify lanes (aka columns)
-    t0 = time.time()
-    
-    front_boxes, all_bottles, front_caps, all_caps, annotated_image = detect_and_match_fronts(
-        image, cap_data, front_model
-    )
-
-    timings["detect_and_match_fronts"] = time.time() - t0
-
-    # 3. Detect and compute column lines
-    t0 = time.time()
-
-    column_lines = match_and_extend_columns(image, front_caps, all_caps)
-    intersections = compute_intersections(column_lines)
-    vanishing_x, vanishing_y, labels, clustering = cluster_vanishing_points(intersections)
-
-    timings["column_detection"] = time.time() - t0
-
-    # 4. Correct misaligned columns
-    t0 = time.time()
-
-    misaligned_columns = check_misaligned_columns(column_lines, vanishing_x, vanishing_y)
-    corrected_lines = correct_misaligned_columns(
-        column_lines, misaligned_columns, vanishing_x, vanishing_y, front_caps
-    )
-
-    timings["column_correction"] = time.time() - t0
-    
-    # 5. Identify products and brands for each column
-    t0 = time.time()
-
-    brands_list = get_brands_from_image(front_bottles, image)
-
-    timings["brand_detection"] = time.time() - t0
-
-    # 6. Clean brand names using known product list
-    t0 = time.time()
-    
-    clean_brands = []
-    for brand in brands_list:
-        # Correct 3-part split: item - brand - flavor
-        item, gpt_brand, gpt_flavor = brand.split(" - ")
-        clean_brand = match_gpt_output_to_list(gpt_brand, gpt_flavor, cfg.standard_drinks)
-        clean_brands.append(clean_brand)
+    def run(self, image):
+        """Runs the full product detection pipeline and returns brand counts and annotated image."""
+        timings = {}
         
-    timings["brand_cleaning"] = time.time() - t0
+        cap_data, front_bottles = self._detect_caps_and_fronts(
+            image, timings
+        )
+        annotated_image, corrected_lines = self._detect_and_correct_columns(
+            image, cap_data, timings
+        )
+        brand_totals, lane_totals, bottle_brand_mapping = self._brand_aggregation(
+            image, cap_data, front_bottles, corrected_lines, timings
+        )
+        
+        processing_total = sum(timings.values())
+        self._log_timings(timings, processing_total)
+        
+        return brand_totals, annotated_image, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_total
+        
+    def _detect_caps_and_fronts(self, image, timings):
+        t0 = time.time()
+        
+        if self.device != "cpu":
+            with conf.ThreadPoolExecutor() as executor:
+                caps_future = executor.submit(
+                    detect_caps,
+                    image,
+                    self.models["cap"]
+                )
+                fronts_future = executor.submit(
+                    detect_front_bottles,
+                    image,
+                    self.models["front"]
+                )
 
-    # 7. Match brands to bottles and compute final counts
-    t0 = time.time()
+                cap_data = caps_future.result()
+                front_bottles = fronts_future.result()
+        else:
+            cap_data = detect_caps(
+                image,
+                self.models["cap"]
+            )
+            front_bottles = detect_front_bottles(
+                image,
+                self.models["front"]
+            )
 
-    bottle_brand_mapping = match_brands_to_bottles(front_bottles, clean_brands)
-
-    front_cap_to_bottle = match_front_caps_to_bottles(front_bottles, cap_data)
-    cap_counts = count_caps_per_column(image, corrected_lines, cap_data)
-
-    brand_totals, lane_totals = compute_brand_counts(
-        bottle_brand_mapping, front_cap_to_bottle, cap_counts, cfg.standard_drinks
-    )
+        timings["caps_and_front_detections"] = time.time() - t0
+        return cap_data, front_bottles
     
-    timings["final_aggregation"] = time.time() - t0
+    def _detect_and_correct_columns(self, image, cap_data, timings):
+        t0 = time.time()
+        
+        _, _, front_caps, all_caps, annotated_image = detect_and_match_fronts(
+            image, cap_data, self.models["front"]
+        )
+        
+        column_lines = match_and_extend_columns(image, front_caps, all_caps)
+        intersections = compute_intersections(column_lines)
+        vx, vy, _, _ = cluster_vanishing_points(intersections)
+        
+        misaligned_columns = check_misaligned_columns(column_lines, vx, vy)
+        corrected_lines = correct_misaligned_columns(
+            column_lines, misaligned_columns, vx, vy, front_caps
+        )
+        
+        timings["column_processing"] = time.time() - t0
+        return annotated_image, corrected_lines
 
-    # 8. Print timing summary
-    
-    log.info("⏱ Timing summary (seconds): %s", timings)
-    print("\n=== Timing Summary ===")
-    for step, t in timings.items():
-        print(f"{step:<25} {t:.3f}s")
-    
-    # total time completition
-    processing_time = sum(timings.values())
-    print(f"\nTotal time: {processing_time:.3f}s")
+    def _brand_aggregation(self, image, cap_data, front_bottles, corrected_lines, timings):
+        t0 = time.time()
 
-    return brand_totals, annotated_image, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time
+        brands_list = get_brands_from_image(front_bottles, image)
+        clean_brands = [
+            match_gpt_output_to_list(*b.split(" - ")[1:], cfg.standard_drinks)
+            for b in brands_list
+        ]
+
+        bottle_brand_mapping = match_brands_to_bottles(front_bottles, clean_brands)
+        front_cap_to_bottle = match_front_caps_to_bottles(front_bottles, cap_data)
+        cap_counts = count_caps_per_column(image, corrected_lines, cap_data)
+
+        brand_totals, lane_totals = compute_brand_counts(
+            bottle_brand_mapping,
+            front_cap_to_bottle,
+            cap_counts,
+            cfg.standard_drinks,
+        )
+
+        timings["brand_aggregation"] = time.time() - t0
+        return brand_totals, lane_totals, bottle_brand_mapping
+
+    def _log_timings(self, timings, total):
+        log.info("Timing summary (seconds): %s", timings)
+        for k, v in timings.items():
+            log.info("%s: %.3fs", k, v)
+        log.info("Total processing time: %.3fs", total)

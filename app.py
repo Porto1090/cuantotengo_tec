@@ -2,7 +2,7 @@ import gradio as gr
 import cv2
 import numpy as np
 import pandas as pd
-from inference.main_inference import run_inference
+from inference.main_inference import InferencePipeline
 import azure_blob_storage as azure_bs
 from datetime import datetime, timezone
 import uuid
@@ -33,6 +33,7 @@ def format_output_for_df(brand_totals):
     
         df = pd.DataFrame(rows)
         df = df.sort_values(by="MARCA").reset_index(drop=True)
+    print("\n")
     return df
 
 def preprocess_image(image_bytes, max_size=1024, jpeg_quality=70):
@@ -72,8 +73,9 @@ def process(file, session_id, progress=gr.Progress()):
         )
         
     progress(0.6, desc="Detectando productos...")
+    pipeline = InferencePipeline()
     brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time = \
-        run_inference(img_bgr)
+        pipeline.run(img_bgr)
 
     if not brand_totals:
         print("No products detected in the image.")

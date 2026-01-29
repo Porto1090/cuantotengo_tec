@@ -6,6 +6,7 @@ from inference.config import (
     VANISHING_BOX_SIZE
 )
 
+
 def match_and_extend_columns(image, front_caps, all_caps):
     """
     Matches each front cap to the closest non-front cap using vanishing point constraints,
@@ -61,6 +62,7 @@ def match_and_extend_columns(image, front_caps, all_caps):
             column_lines.append((None, None, f_cx))
 
     return column_lines
+
 
 def compute_intersections(column_lines):
     """

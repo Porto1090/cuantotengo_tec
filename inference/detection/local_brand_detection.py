@@ -24,7 +24,6 @@ preprocess = transforms.Compose([
     )
 ])
 
-
 # -------------------------------------------------------------
 # Replacement for LLM-based detection
 # This matches your old signature EXACTLY:
