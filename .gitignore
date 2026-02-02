@@ -6,5 +6,6 @@ yolov8n.pt
 data/
 test_images/
 
+.env
 venv/
 **/.DS_Store

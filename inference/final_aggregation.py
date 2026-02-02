@@ -12,7 +12,7 @@ def match_front_caps_to_bottles(front_bottles, cap_data):
     return front_cap_to_bottle
 
 
-def compute_brand_counts(bottle_brand_mapping, front_cap_to_bottle, cap_counts, product_dict):
+def compute_brand_counts(bottle_brand_mapping, front_cap_to_bottle, cap_counts):
     brand_totals = {}
     lane_totals = {}
 
@@ -39,7 +39,7 @@ def compute_brand_counts(bottle_brand_mapping, front_cap_to_bottle, cap_counts, 
 
     return brand_totals, lane_totals
 
-
+# NOT USED CURRENTLY
 def match_gpt_output_to_list(gpt_brand, gpt_flavor, product_dict):
     # --- 1. Brand must match exactly ---
     if gpt_brand not in product_dict:

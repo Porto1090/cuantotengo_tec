@@ -1,18 +1,32 @@
+import os
 import cv2
 import torch
 from PIL import Image
 import torch.nn.functional as tnnf
 from torchvision import transforms, models
+from inference.config import(
+    LAB_BRAND_MODEL_PATH, LAB_CLASS_NAMES, LAB_CLASS_NAMES_DICT,
+    MX_BRAND_MODEL_PATH, MX_CLASS_NAMES, MX_CLASS_NAMES_DICT
+)
 
-# -------------------------------------------------------------
-# Load model ONCE at import time (fast and efficient)
-# -------------------------------------------------------------
-CLASS_NAMES = ["Dos_Equis_Lager", "Manzanita_Sol", "Modelo_Especial", "Negra_Modelo", "New_Mix_Jimador_Paloma_Lata", "Pepsi_Black", "Pepsi_Light", "Pepsi_Regular"]      # ← your classes here
-MODEL_PATH = "./models/brand_model_3class.pt"                           # ← your trained model file
+CLASS_NAMES = []
+CLASS_NAMES_DICT = {}
+BRAND_MODEL_PATH = ""
 
+#brand_version = os.getenv("BRAND_DETECTION_VERSION")
+brand_version = "MEX"
+if brand_version == "MEX":
+    CLASS_NAMES = MX_CLASS_NAMES
+    CLASS_NAMES_DICT = MX_CLASS_NAMES_DICT
+    BRAND_MODEL_PATH = MX_BRAND_MODEL_PATH
+elif brand_version == "LAB":
+    CLASS_NAMES = LAB_CLASS_NAMES
+    CLASS_NAMES_DICT = LAB_CLASS_NAMES_DICT
+    BRAND_MODEL_PATH = LAB_BRAND_MODEL_PATH
+        
 model = models.resnet18(weights=None)
 model.fc = torch.nn.Linear(model.fc.in_features, len(CLASS_NAMES))
-model.load_state_dict(torch.load(MODEL_PATH, map_location="cpu"))
+model.load_state_dict(torch.load(BRAND_MODEL_PATH, map_location="cpu"))
 model.eval()
 
 preprocess = transforms.Compose([
@@ -58,22 +72,9 @@ def get_brands_from_image(front_bottles, image_bgr):
             probs = tnnf.softmax(logits, dim=1)
             pred_idx = probs.argmax().item()
 
-        LABEL_TO_BRAND_FLAVOR = {
-            "Dos_Equis_Lager": ("Dos Equis", "Lager"),
-            "Manzanita_Sol": ("Manzanita Sol", "Original"),
-            "Modelo_Especial": ("Modelo", "Especial"),
-            "Negra_Modelo": ("Modelo", "Negra"),
-            "New_Mix_Jimador_Paloma_Lata": ("New Mix", "Jimador Paloma Lata"),
-            "Pepsi_Black": ("Pepsi", "Black"),
-            "Pepsi_Light": ("Pepsi", "Light"),
-            "Pepsi_Regular": ("Pepsi", "Regular"),
-        }
+        raw_label = CLASS_NAMES[pred_idx]
 
-        raw_label = CLASS_NAMES[pred_idx]   # e.g., "Diet_Coke"
-
-        brand_name, flavor_name = LABEL_TO_BRAND_FLAVOR[raw_label]
-
-        # Format EXACTLY like GPT used to output
+        brand_name, flavor_name = CLASS_NAMES_DICT[raw_label]
         formatted = f"can - {brand_name} - {flavor_name}"
 
         brand_results.append(formatted)
@@ -93,7 +94,7 @@ def match_brands_to_bottles(front_bottles, brands_list):
         dict: Mapping from bottle bounding boxes to brand strings.
     """
     if len(front_bottles) != len(brands_list):
-        print(f"⚠️ Detected {len(front_bottles)} bottles but got {len(brands_list)} brand predictions.")
+        print(f"Detected {len(front_bottles)} bottles but got {len(brands_list)} brand predictions.")
         min_len = min(len(front_bottles), len(brands_list))
         front_bottles = front_bottles[:min_len]
         brands_list = brands_list[:min_len]

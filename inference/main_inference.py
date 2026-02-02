@@ -124,8 +124,8 @@ class InferencePipeline:
 
         brands_list = get_brands_from_image(front_bottles, image)
         clean_brands = [
-            match_gpt_output_to_list(*b.split(" - ")[1:], cfg.standard_drinks)
-            for b in brands_list
+            f"{brand} - {flavor}"
+            for brand, flavor in (b.split(" - ")[1:] for b in brands_list)
         ]
 
         bottle_brand_mapping = match_brands_to_bottles(front_bottles, clean_brands)
@@ -135,8 +135,7 @@ class InferencePipeline:
         brand_totals, lane_totals = compute_brand_counts(
             bottle_brand_mapping,
             front_cap_to_bottle,
-            cap_counts,
-            cfg.standard_drinks,
+            cap_counts
         )
 
         timings["brand_aggregation"] = time.time() - t0

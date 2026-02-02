@@ -21,17 +21,9 @@ BRAND_MAP = {
     "can - Pepsi - Black": "Pepsi Black",
     "can - Pepsi - Light": "Pepsi Light",
     "can - Pepsi - Regular": "Pepsi Regular",
-}
-
-BRAND_MAP_IMAGES = {
-    "Dos Equis Lager": "https://www.freepnglogos.com/uploads/dos-equis-png-logo/cerzava-xx-dos-equis-png-logo-1.png",
-    "Manzanita Sol Original": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcSxMCabVMXf5qKgquEimWwigopirZIG-3792Q&s",
-    "Modelo Especial": "https://1000logos.net/wp-content/uploads/2023/05/Modelo-Logo.png",
-    "Negra Modelo": "https://upload.wikimedia.org/wikipedia/commons/c/ce/Coca-Cola_logo.svg",
-    "New Mix Jimador Paloma Lata": "https://www.kroger.com/product/images/large/top/0074460721004",
-    "Pepsi Black": "https://s3.amazonaws.com/cdn.designcrowd.com/blog/The-Pepsi-Logo-History/1973-pepsi-logo.png",
-    "Pepsi Light": "https://s3.amazonaws.com/cdn.designcrowd.com/blog/The-Pepsi-Logo-History/1973-pepsi-logo.png",
-    "Pepsi Regular": "https://s3.amazonaws.com/cdn.designcrowd.com/blog/The-Pepsi-Logo-History/1973-pepsi-logo.png",
+    "can - Canada Dry - Ginger Ale": "Canada Dry Ginger Ale",
+    "can - Coca-Cola - Diet Coke": "Coca-Cola Diet Coke",
+    "can - Seltzer Water - Lime": "Seltzer Water Lime",
 }
 
 def generate_short_hex():
@@ -55,12 +47,14 @@ def format_output_html(brand_totals):
     rows = ""
     bg_colors = ["#222222", "#333333"]
 
-    for idx, (key, value) in enumerate(brand_totals.items()):
+    sorted_items = sorted(
+        brand_totals.items(),
+        key=lambda x: BRAND_MAP.get(x[0], x[0])
+    )
+
+    for idx, (key, value) in enumerate(sorted_items):
         pretty_name = BRAND_MAP.get(key, key)
-        img = BRAND_MAP_IMAGES.get(
-            pretty_name,
-            "https://upload.wikimedia.org/wikipedia/commons/c/ce/Coca-Cola_logo.svg"
-        )
+        img = f"public/{key}.png"
 
         bg = bg_colors[idx % 2]
 
@@ -69,7 +63,7 @@ def format_output_html(brand_totals):
             <td style="background-color:#FFFFFF; margin: auto; text-align:center; padding:10px; width:80px;">
                 <img src="{img}" width="64" alt="{pretty_name}" />
             </td>
-            <td style="padding:8px; text-align:left; font-size:24px;">
+            <td style="padding:8px; text-align:left; font-size:24px; height:80px;">
                 {pretty_name}
             </td>
             <td style="padding:8px; font-weight:600; text-align:center; font-size:24px;">
@@ -77,6 +71,7 @@ def format_output_html(brand_totals):
             </td>
         </tr>
         """
+        print(f"Marca: {pretty_name}, Total: {value}")
 
     return f"""
     <table style="
@@ -161,7 +156,7 @@ def process(file, session_id, progress=gr.Progress()):
     }
     azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp)
 
-    SHOW_IMAGES = True
+    SHOW_IMAGES = False
     if (SHOW_IMAGES):
         html_table = format_output_html(brand_totals)
         progress(1.0, desc="Completado")
@@ -191,8 +186,8 @@ with gr.Blocks(title="CuantoTengo") as demo:
         visible=False,
         size="lg"
     )
-    # output_json = gr.DataFrame(value=dummy_df, visible=False)
-    output_json = gr.HTML(visible=False)
+    output_json = gr.DataFrame(value=dummy_df, visible=False)
+    # output_json = gr.HTML(visible=False)
     output_img = gr.Image(label="IMAGEN GENERADA", visible=False)
     
     # === ERROR MESSAGES ===      
