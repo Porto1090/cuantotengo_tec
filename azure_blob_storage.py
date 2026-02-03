@@ -3,6 +3,9 @@ import cv2
 import json
 from azure.storage.blob import BlobServiceClient
 
+from dotenv import load_dotenv
+load_dotenv()
+
 AZURE_CONN_STR = os.getenv("AZURE_STORAGE_CONNECTION_STRING")
 AZURE_CONTAINER = os.getenv("AZURE_CONTAINER")
 
