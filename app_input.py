@@ -34,6 +34,20 @@ BRAND_MAP = {
     "can - Seltzer Water - Lime": "Seltzer Water Lime",
 }
 
+BRAND_MAP_IMAGES = {
+    "can - Dos Equis - Lager": "https://encrypted-tbn0.gstatic.com/shopping?q=tbn:ANd9GcR3wQ_D2ZrU3JoDUa0lm1zfnOFAm2PIjZnzj9D4Z0w-NebHoFjV8nePrTk1oq7GWK-VNnQeBlrlV7YAJq3R2mt396fQGSYh7w",
+    "can - Manzanita Sol - Original": "https://ss302.liverpool.com.mx/xl/1046946100.jpg",
+    "can - Modelo - Especial": "https://californiaranchmarket.com/cdn/shop/products/modelo.jpg?v=1659716608",
+    "can - Modelo - Negra": "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRF3eefN4QK5YEPSFFQMnYCxAoy2lF_WaVNAA&s",
+    "can - New Mix - Jimador Paloma Lata": "https://cdn11.bigcommerce.com/s-0ddlsmhg83/products/10243/images/10525/new-mix-el-jimador-paloma-ready-to-drink-cocktail__57304.1752496204.1280.1280__00174.1755243376.386.513.jpg?c=1",
+    "can - Pepsi - Black": "https://missionaryexpressbrazil.com/cdn/shop/files/pepsiblackzerosugar12oz2.49_992e9e25-3fa0-48e9-99c5-2b7c1698923a.webp?v=1747544034",
+    "can - Pepsi - Light": "https://store.haciendaencantada.com/images/virtuemart/product/PEPSI%20LIGHT%20LATA.png",
+    "can - Pepsi - Regular": "https://www.pepsicopartners.com/medias/300Wx300H-1-JVX42-1.jpeg?context=bWFzdGVyfHJvb3R8MjQ1ODN8aW1hZ2UvanBlZ3xhREZrTDJnNE5TOHhNREEwT1RVeU56UTBOelU0TWk4ek1EQlhlRE13TUVoZk1TMUtWbGcwTWkweExtcHdaV2N8MTI0YjExNmM1ZDA4YTQ5Yjk1OWE4NzI1YWE4YWU4MTQ5MTIwMGQyODQxODBlZTkyNDc4MGFkZGQyYTc4MWM2Nw",
+    "can - Canada Dry - Ginger Ale": "https://i5.walmartimages.com/asr/db765423-e5ac-40e2-bb9e-b8f1c0cd1cfe.03628c2784f31baac3bc8bee88e311c8.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF",
+    "can - Coca-Cola - Diet Coke": "https://boxncase.com/cdn/shop/files/bevcc18.original.jpg?v=1737915612&width=1920",
+    "can - Seltzer Water - Lime": "https://i5.walmartimages.com/asr/02b5fd40-539c-4711-a7a6-7a6bde2ca476.787e2d88cadbf76a8b3c52a73ff07c3f.jpeg?odnHeight=768&odnWidth=768&odnBg=FFFFFF",
+}
+
 # === HELPERS ===
 def generate_short_hex():
     letters = [secrets.choice(string.ascii_uppercase) for _ in range(2)]
@@ -63,7 +77,7 @@ def format_output_html(brand_totals):
 
     for idx, (key, value) in enumerate(sorted_items):
         pretty_name = BRAND_MAP.get(key, key)
-        img = "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQmcXdOVEha1F9byhaNFhdHJkThCbyLM8g2g&s"
+        img = BRAND_MAP_IMAGES.get(key, "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQQmcXdOVEha1F9byhaNFhdHJkThCbyLM8g2g&s") 
 
         bg = bg_colors[idx % 2]
 
@@ -258,9 +272,10 @@ def on_file_upload(file):
 with gr.Blocks(title="CuantoTengo") as main:
     session_id = gr.State(value=None)
     enter_time = gr.State(value=None)
-    dashboard_header = gr.Markdown(f"<div style='display: flex; align-items: center; justify-content: space-between; margin-bottom: -20px;'>\
-        <h1 style='font-size: 48px; margin: 0;'>CuantoTengo</h1> \
-        <h3 style='font-size: 16px; margin: 0;'>VERSION <b>{BRAND_DETECTION_VERSION}</b></h3>\
+    
+    dashboard_header = gr.Markdown(f"<div style='display:flex; align-items:center; justify-content:space-between;'>\
+        <h1 style='font-size: 48px; color:#FFF'>CuantoTengo</h1> \
+        <h3 style='font-size: 24px; color:#FFF'>VERSION <b>{BRAND_DETECTION_VERSION}</b></h3>\
     </div>")
     
     #=== SESSION GATE ===
@@ -280,7 +295,6 @@ with gr.Blocks(title="CuantoTengo") as main:
 
         # === INPUTS ===
         file_input = gr.File(label="PULSA AQUÍ PARA TOMAR LA FOTO", file_types=["image"])
-
         # === OUTPUTS ===
         reset_btn = gr.Button(
             "TOMAR OTRA FOTO",
@@ -355,4 +369,4 @@ import os
 # ===LAUNCHING THE APP===
 
 port = int(os.environ.get("PORT", 7860))
-main.launch(server_name="0.0.0.0", server_port=port, share=False)
+main.launch(theme=gr.themes.Citrus(), server_name="0.0.0.0", server_port=port, share=False)
