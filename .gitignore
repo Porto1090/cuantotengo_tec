@@ -5,6 +5,7 @@ yolov8n.pt
 *.png
 data/
 test_images/
+output/
 
 .env
 venv/
