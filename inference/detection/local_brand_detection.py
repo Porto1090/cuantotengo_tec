@@ -5,12 +5,12 @@ from PIL import Image
 import torch.nn.functional as tnnf
 from torchvision import transforms, models
 from inference.config import(
-    LAB_BRAND_MODEL_PATH, LAB_CLASS_NAMES, LAB_CLASS_NAMES_DICT,
-    MX_BRAND_MODEL_PATH, MX_CLASS_NAMES, MX_CLASS_NAMES_DICT
+    LAB_BRAND_MODEL_PATH, LAB_CLASS_NAMES,
+    MX_BRAND_MODEL_PATH, MX_CLASS_NAMES
 )
+from inference.detection.gpt_detection import llm_detect_brand
 
 CLASS_NAMES = []
-CLASS_NAMES_DICT = {}
 BRAND_MODEL_PATH = ""
 
 from dotenv import load_dotenv
@@ -19,17 +19,18 @@ load_dotenv()
 BRAND_DETECTION_VERSION = os.getenv("BRAND_DETECTION_VERSION")
 if BRAND_DETECTION_VERSION == "MEX":
     CLASS_NAMES = MX_CLASS_NAMES
-    CLASS_NAMES_DICT = MX_CLASS_NAMES_DICT
     BRAND_MODEL_PATH = MX_BRAND_MODEL_PATH
 elif BRAND_DETECTION_VERSION == "LAB":
     CLASS_NAMES = LAB_CLASS_NAMES
-    CLASS_NAMES_DICT = LAB_CLASS_NAMES_DICT
     BRAND_MODEL_PATH = LAB_BRAND_MODEL_PATH
-        
-model = models.resnet18(weights=None)
-model.fc = torch.nn.Linear(model.fc.in_features, len(CLASS_NAMES))
-model.load_state_dict(torch.load(BRAND_MODEL_PATH, map_location="cpu"))
-model.eval()
+
+model = None
+
+if BRAND_DETECTION_VERSION != "GPT":        
+    model = models.resnet18(weights=None)
+    model.fc = torch.nn.Linear(model.fc.in_features, len(CLASS_NAMES))
+    model.load_state_dict(torch.load(BRAND_MODEL_PATH, map_location="cpu"))
+    model.eval()
 
 preprocess = transforms.Compose([
     transforms.Resize((224, 224)),
@@ -62,22 +63,22 @@ def get_brands_from_image(front_bottles, image_bgr):
 
         # Crop the bottle front (same as your old code structure)
         crop = image_bgr[y1:y2, x1:x2]
+        
+        if BRAND_DETECTION_VERSION == "GPT":
+            formatted = llm_detect_brand(crop)
+        else:
+            # Convert BGR → RGB → tensor
+            crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+            pil_img = Image.fromarray(crop_rgb)
+            x = preprocess(pil_img).unsqueeze(0)
 
-        # Convert BGR → RGB → tensor
-        crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-        pil_img = Image.fromarray(crop_rgb)
-        x = preprocess(pil_img).unsqueeze(0)
-
-        # Predict
-        with torch.no_grad():
-            logits = model(x)
-            probs = tnnf.softmax(logits, dim=1)
-            pred_idx = probs.argmax().item()
-
-        raw_label = CLASS_NAMES[pred_idx]
-
-        brand_name, flavor_name = CLASS_NAMES_DICT[raw_label]
-        formatted = f"can - {brand_name} - {flavor_name}"
+            # Predict
+            with torch.no_grad():
+                logits = model(x)
+                probs = tnnf.softmax(logits, dim=1)
+                pred_idx = probs.argmax().item()
+            
+            formatted = CLASS_NAMES[pred_idx]
 
         brand_results.append(formatted)
 

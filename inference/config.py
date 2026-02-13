@@ -29,23 +29,23 @@ FRONT_CAP_OVERLAP_THRESHOLD = 0.9  # 90% of cap inside front box
 
 # --- MEXICO VERSION ---
 MX_BRAND_MODEL_PATH = "models/brand_model_3class.pt"
-MX_CLASS_NAMES = ["Dos_Equis_Lager", "Manzanita_Sol", "Modelo_Especial", "Negra_Modelo", "New_Mix_Jimador_Paloma_Lata", "Pepsi_Black", "Pepsi_Light", "Pepsi_Regular"]
+MX_CLASS_NAMES = ["dosequis_lager", "manzanitasol_original", "modelo_especial", "modelo_negra", "newmix_jimadorpaloma", "pepsi_black", "pepsi_light", "pepsi_regular"]
 MX_CLASS_NAMES_DICT = {
-    "Dos_Equis_Lager": ("Dos Equis", "Lager"),
-    "Manzanita_Sol": ("Manzanita Sol", "Original"),
-    "Modelo_Especial": ("Modelo", "Especial"),
-    "Negra_Modelo": ("Modelo", "Negra"),
-    "New_Mix_Jimador_Paloma_Lata": ("New Mix", "Jimador Paloma Lata"),
-    "Pepsi_Black": ("Pepsi", "Black"),
-    "Pepsi_Light": ("Pepsi", "Light"),
-    "Pepsi_Regular": ("Pepsi", "Regular"),
+    "dosequis_lager": "Dos Equis Lager",
+    "manzanitasol_original": "Manzanita Sol Original",
+    "modelo_especial": "Modelo Especial",
+    "modelo_negra": "Modelo Negra",
+    "newmix_jimadorpaloma": "New Mix Jimador Paloma Lata",
+    "pepsi_black": "Pepsi Black",
+    "pepsi_light": "Pepsi Light",
+    "pepsi_regular": "Pepsi Regular",
 }
 
 # --- LABORATORY VERSION ---
 LAB_BRAND_MODEL_PATH = "models/brand_model_3class_lab.pt"
-LAB_CLASS_NAMES = ["Canada_Dry", "Diet_Coke", "Seltzer_Lime"]
+LAB_CLASS_NAMES = ["canadadry_gingerale", "cocacola_dietcoke", "seltzer_lime"]
 LAB_CLASS_NAMES_DICT = {
-    "Diet_Coke": ("Coca-Cola", "Diet Coke"),
-    "Canada_Dry": ("Canada Dry", "Ginger Ale"),
-    "Seltzer_Lime": ("Seltzer Water", "Lime")
+    "canadadry_gingerale": "Canada Dry Ginger Ale",
+    "cocacola_dietcoke": "Coca-Cola Diet Coke",
+    "seltzer_lime": "Seltzer Water Lime"
 }

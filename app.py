@@ -10,11 +10,15 @@ import pandas as pd
 import azure_blob_storage as azure_bs
 from datetime import datetime, timezone
 from inference.main_inference import InferencePipeline
+from inference.config import (
+    MX_CLASS_NAMES_DICT, LAB_CLASS_NAMES_DICT,
+)
 
 import base64
+from PIL import Image
+from io import BytesIO
 
 def image_to_base64(image_path):
-    """Convierte una imagen local a base64 para HTML"""
     with open(image_path, "rb") as img_file:
         return base64.b64encode(img_file.read()).decode()
 
@@ -28,17 +32,12 @@ load_dotenv()
 BRAND_DETECTION_VERSION = os.getenv("BRAND_DETECTION_VERSION")
 
 BRAND_MAP = {
-    "can - Dos Equis - Lager": "Dos Equis Lager",
-    "can - Manzanita Sol - Original": "Manzanita Sol Original",
-    "can - Modelo - Especial": "Modelo Especial",
-    "can - Modelo - Negra": "Negra Modelo",
-    "can - New Mix - Jimador Paloma Lata": "New Mix Jimador Paloma Lata",
-    "can - Pepsi - Black": "Pepsi Black",
-    "can - Pepsi - Light": "Pepsi Light",
-    "can - Pepsi - Regular": "Pepsi Regular",
-    "can - Canada Dry - Ginger Ale": "Canada Dry Ginger Ale",
-    "can - Coca-Cola - Diet Coke": "Coca-Cola Diet Coke",
-    "can - Seltzer Water - Lime": "Seltzer Water Lime",
+    "can_canadadry_dietgingerale": "Canada Dry Ginger Ale",
+    "can_dietcoke_regular": "Coca-Cola Diet Coke",
+    "can_lifewtr_lime ": "Seltzer Water Lime",
+    "can_manzanitasol_apple": "Manzanita Sol Original", 
+    **MX_CLASS_NAMES_DICT,
+    **LAB_CLASS_NAMES_DICT,
 }
 
 # === HELPERS ===
@@ -69,8 +68,10 @@ def format_output_html(brand_totals):
     )
 
     for idx, (key, value) in enumerate(sorted_items):
-        pretty_name = BRAND_MAP.get(key, key)
-        img_path = f"./images/{key}.jpg"
+        transformed_key = "_".join(key.split('_')[1:])
+        print(f"Transformed key: {transformed_key}")
+        pretty_name = BRAND_MAP.get(transformed_key, key)
+        img_path = f"./images/{transformed_key}.jpg"
 
         # Convertir imagen local a base64
         try:
@@ -85,7 +86,7 @@ def format_output_html(brand_totals):
         rows += f"""
         <tr style="background-color:{bg_color}; border-bottom:1px solid #e5e7eb;">
             <td style="background-color:#FFFFFF; margin: auto; text-align:center; padding:10px; width:80px;">
-                <img src="{img_src}" width="64" alt="{pretty_name}" />
+                <img src="{img_src}" color="black" width="64" height="64" style="object-fit: contain; align:center;" alt="NO IMAGE" />
             </td>
             <td style="padding:8px; text-align:left; font-size:24px; height:80px;">
                 {pretty_name}
@@ -174,21 +175,23 @@ def process(file, session_id, enter_time, progress=gr.Progress()):
 
     annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
     
-    real_timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    real_timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()[:-6]
     # === SAVE TO AZURE BLOB STORAGE ===
     # SAVE ORIGINAL IMAGE
-    azure_bs.save_image_to_blob(img_bgr, session_id, real_timestamp + "_original")
+    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    azure_bs.save_image_to_blob(img_rgb, session_id, real_timestamp + "_original", BRAND_DETECTION_VERSION + "_images")
     # SAVE ALGORITHM IMAGE
-    azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp + "_bounding_boxes")
+    azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
     # SAVE ALGORITHM LOG
     log_dict = {
         "session_id": session_id,
+        "version": BRAND_DETECTION_VERSION,
         "timestamp": real_timestamp,
         "brand_totals": brand_totals,
         "processing_time": f"{processing_time:.2f}",
         "elapsed_time_in_session": f"{elapsed_time:.2f}",
     }
-    azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp)
+    azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp, BRAND_DETECTION_VERSION + "_logs")
     
     print(f"Timestamp Photo Session: {log_dict['elapsed_time_in_session']} seconds")
     print(f"Process Timestamp: {log_dict['processing_time']} seconds")
@@ -241,7 +244,8 @@ def set_session_id(user_input):
     
 def render_session_text(session_id):
     return (
-        gr.update(value=f"## ID Sesión: **{session_id}**", visible=True),
+        gr.update(value=f"## ID Sesión: **{session_id if session_id != '0' else 'TEST'}**", visible=True),
+        gr.update(visible=False),
         gr.update(visible=False),
         gr.update(visible=False),
         gr.update(visible=False),
@@ -278,9 +282,9 @@ with gr.Blocks(title="CuantoTengo") as main:
     session_id = gr.State(value=None)
     enter_time = gr.State(value=None)
     
-    dashboard_header = gr.Markdown(f"<div style='display:flex; align-items:center; justify-content:space-between;'>\
-        <h1 style='font-size: 48px; color:#FFF'>CuantoTengo</h1> \
-        <h3 style='font-size: 24px; color:#FFF'>VERSION <b>{BRAND_DETECTION_VERSION}</b></h3>\
+    gr.Markdown(f"<div style='display:flex; align-items:center; justify-content:space-between;'>\
+        <h1 style='font-size: 40px; color:#F59E0B'>CuantoTengo</h1> \
+        <h3 style='font-size: 16px; color:#FFF'>VERSION <b>{BRAND_DETECTION_VERSION}</b></h3>\
     </div>")
     
     #=== SESSION GATE ===
@@ -293,6 +297,7 @@ with gr.Blocks(title="CuantoTengo") as main:
 
         session_error = gr.Markdown(visible=False)
         enter_btn = gr.Button("ENTRAR", size="lg")
+        test_btn = gr.Button("ENTRAR COMO TEST", size="lg")
 
     #=== MAIN APP ===
     with gr.Column(visible=False) as dashboard:
@@ -358,6 +363,19 @@ with gr.Blocks(title="CuantoTengo") as main:
         ],
     )
     
+    test_btn.click(
+        fn=set_session_id,
+        inputs=gr.Textbox(value=000, visible=False),
+        outputs=[
+            session_id,
+            session_error,
+            dashboard,
+            session_gate,
+            session_text,
+            enter_time
+        ],
+    )
+    
     session_id.change(
         fn=render_session_text,
         inputs=session_id,
@@ -366,7 +384,8 @@ with gr.Blocks(title="CuantoTengo") as main:
             gate_title,
             session_input,
             session_error,
-            enter_btn
+            enter_btn,
+            test_btn
         ],
     )
 

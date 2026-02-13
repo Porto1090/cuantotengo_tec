@@ -28,27 +28,13 @@ def compute_brand_counts(bottle_brand_mapping, front_cap_to_bottle, cap_counts):
             # Totals count
             counts = cap_counts.get(cap_bbox, {'bottle': 0, 'can': 0})
             if counts['bottle'] > 0:
-                key = f"bottle - {matched_product}"
+                key = f"bottle_{matched_product}"
                 brand_totals[key] = brand_totals.get(key, 0) + counts['bottle']
             if counts['can'] > 0:
-                key = f"can - {matched_product}"
+                key = f"can_{matched_product}"
                 brand_totals[key] = brand_totals.get(key, 0) + counts['can']
 
             # Lanes count
             lane_totals[bottle_bbox] = counts["bottle"] + counts['can']
 
     return brand_totals, lane_totals
-
-# NOT USED CURRENTLY
-def match_gpt_output_to_list(gpt_brand, gpt_flavor, product_dict):
-    # --- 1. Brand must match exactly ---
-    if gpt_brand not in product_dict:
-        return "Unknown Drink"
-
-    # --- 2. Flavor must match exactly ---
-    known_flavors = product_dict[gpt_brand]
-
-    if gpt_flavor in known_flavors:
-        return f"{gpt_brand} - {gpt_flavor}"
-
-    return f"{gpt_brand} - {gpt_flavor}"

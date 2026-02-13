@@ -26,7 +26,6 @@ from inference.detection.local_brand_detection import (
     match_brands_to_bottles
 )
 from inference.final_aggregation import (
-    match_gpt_output_to_list,
     match_front_caps_to_bottles,
     compute_brand_counts,
 )
@@ -123,12 +122,7 @@ class InferencePipeline:
         t0 = time.time()
 
         brands_list = get_brands_from_image(front_bottles, image)
-        clean_brands = [
-            f"{brand} - {flavor}"
-            for brand, flavor in (b.split(" - ")[1:] for b in brands_list)
-        ]
-
-        bottle_brand_mapping = match_brands_to_bottles(front_bottles, clean_brands)
+        bottle_brand_mapping = match_brands_to_bottles(front_bottles, brands_list)
         front_cap_to_bottle = match_front_caps_to_bottles(front_bottles, cap_data)
         cap_counts = count_caps_per_column(image, corrected_lines, cap_data)
 
