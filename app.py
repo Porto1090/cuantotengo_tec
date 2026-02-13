@@ -32,10 +32,6 @@ load_dotenv()
 BRAND_DETECTION_VERSION = os.getenv("BRAND_DETECTION_VERSION")
 
 BRAND_MAP = {
-    "can_canadadry_dietgingerale": "Canada Dry Ginger Ale",
-    "can_dietcoke_regular": "Coca-Cola Diet Coke",
-    "can_lifewtr_lime ": "Seltzer Water Lime",
-    "can_manzanitasol_apple": "Manzanita Sol Original", 
     **MX_CLASS_NAMES_DICT,
     **LAB_CLASS_NAMES_DICT,
 }
@@ -70,7 +66,7 @@ def format_output_html(brand_totals):
     for idx, (key, value) in enumerate(sorted_items):
         transformed_key = "_".join(key.split('_')[1:])
         print(f"Transformed key: {transformed_key}")
-        pretty_name = BRAND_MAP.get(transformed_key, key)
+        pretty_name = BRAND_MAP.get(transformed_key, key.split("_", 1)[-1].replace("_", " ").title())
         img_path = f"./images/{transformed_key}.jpg"
 
         # Convertir imagen local a base64

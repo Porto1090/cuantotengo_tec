@@ -18,14 +18,14 @@ def encode_crop(crop):
 def llm_detect_brand(crop):
 	image_data_url = encode_crop(crop)
 	response = client.responses.create(
-	model="gpt-4.1-mini",
+	model="gpt-5.2",
 		input=[
 			{
 				"role": "user",
 				"content": [
 					{
 						"type": "input_text",
-						"text": "Identify beverage CAN OR BOTTLE brand and flavor. Reply ONLY in format: BRAND_FLAVOR (e.g. pepsi_regular, dosequis_lager, etc). Do not add additional `_` characters."
+						"text": "Identify beverage CAN OR BOTTLE brand and flavor: BRAND FLAVOR (ex. Dos Equis Lager, Manzanita Sol Original, Modelo Especial, New Mix Jimador Paloma Lata). If you cannot identify the brand and flavor, try your best. Only respond with the brand and flavor, no explanations or additional text."
 					},
 					{
 						"type": "input_image",
