@@ -2,6 +2,7 @@ import os
 import re
 import cv2
 import uuid
+import time
 import string
 import secrets
 import numpy as np
@@ -158,6 +159,7 @@ def process(file, session_id, enter_time, progress=gr.Progress()):
     progress(0.6, desc="Detectando productos...")
     pipeline = InferencePipeline()
     brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time = pipeline.run(img_bgr)
+    time.sleep(0.5)
 
     if not brand_totals:
         print("No products detected in the image.")
