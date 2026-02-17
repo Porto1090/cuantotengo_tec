@@ -159,7 +159,6 @@ def process(file, session_id, enter_time, progress=gr.Progress()):
     progress(0.6, desc="Detectando productos...")
     pipeline = InferencePipeline()
     brand_totals, annotated, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_time = pipeline.run(img_bgr)
-    time.sleep(0.5)
 
     if not brand_totals:
         print("No products detected in the image.")
@@ -197,10 +196,12 @@ def process(file, session_id, enter_time, progress=gr.Progress()):
     SHOW_IMAGES = True
     if (SHOW_IMAGES):
         html_table = format_output_html(brand_totals)
+        time.sleep(0.5)
         progress(1.0, desc="Completado")
         return html_table, annotated_rgb, gr.update(visible=False)
     else: 
         df = format_output_for_df(brand_totals)
+        time.sleep(0.5)
         progress(1.0, desc="Completado")
         return df, annotated_rgb, gr.update(visible=False)
 
