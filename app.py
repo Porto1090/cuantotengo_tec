@@ -196,14 +196,16 @@ def process(file, session_id, enter_time, progress=gr.Progress()):
     SHOW_IMAGES = True
     if (SHOW_IMAGES):
         html_table = format_output_html(brand_totals)
+        img_url = azure_bs.get_blob_url(session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
         time.sleep(0.5)
         progress(1.0, desc="Completado")
-        return html_table, annotated_rgb, gr.update(visible=False)
+        return html_table, img_url, gr.update(visible=False)
     else: 
         df = format_output_for_df(brand_totals)
+        img_url = azure_bs.get_blob_url(session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
         time.sleep(0.5)
         progress(1.0, desc="Completado")
-        return df, annotated_rgb, gr.update(visible=False)
+        return df, img_url, gr.update(visible=False)
 
 # === SESSION CONTROLLERS ===
 def set_session_id(user_input):

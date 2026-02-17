@@ -14,6 +14,15 @@ blob_client = None
 if AZURE_CONN_STR and AZURE_CONTAINER:
     blob_client = BlobServiceClient.from_connection_string(AZURE_CONN_STR)
 
+def get_blob_url(session_id, metadata, prefix):
+    if blob_client is None:
+        return None
+    
+    blob_name = f"{prefix}/{session_id}_{metadata}.jpg"
+    blob = blob_client.get_blob_client(container=AZURE_CONTAINER, blob=blob_name)
+    
+    return blob.url
+
 def save_image_to_blob(image_rgb, session_id, metadata, prefix="images"):
     if blob_client is None:
         # Storage disabled (DEV / testing)
