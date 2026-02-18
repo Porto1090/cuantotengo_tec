@@ -58,6 +58,7 @@ def format_output_for_df(brand_totals):
 def format_output_html(brand_totals):
     rows = ""
     bg_colors = ["#222222", "#333333"]
+    text_colors = ["#FFFFFF", "#CCCCCC"]
 
     sorted_items = sorted(
         brand_totals.items(),
@@ -80,21 +81,23 @@ def format_output_html(brand_totals):
     
         bg_color = bg_colors[idx % 2]
 
+        # ADD-ON -> 
+        # <td style="background-color:{text_colors[0]}; margin: auto; text-align:center; padding:10px; width:80px; display:flex; justify-content:center; align-items:center;">
+        #     <img src="{img_src}" color="black" width="64" height="64" style="object-fit: contain; align:center; color:{text_colors[1]};" alt="NO IMAGE"/>
+        # </td>
         rows += f"""
         <tr style="background-color:{bg_color}; border-bottom:1px solid #e5e7eb;">
-            <td style="background-color:#FFFFFF; margin: auto; text-align:center; padding:10px; width:80px;">
-                <img src="{img_src}" color="black" width="64" height="64" style="object-fit: contain; align:center;" alt="NO IMAGE" />
-            </td>
-            <td style="padding:8px; text-align:left; font-size:24px; height:80px;">
+            <td style="padding:8px; text-align:left; font-size:24px; height:80px; color:{text_colors[0]};">
                 {pretty_name}
             </td>
-            <td style="padding:8px; font-weight:600; text-align:center; font-size:24px;">
+            <td style="padding:8px; font-weight:600; text-align:center; font-size:24px; color:{text_colors[0]};">
                 {value}
             </td>
         </tr>
         """
         print(f"Marca: {pretty_name}, Total: {value}")
 
+    # ADD-ON -> <th style="padding:12px; width:80px;"></th>
     return f"""
     <table style="
         width:100%;
@@ -104,9 +107,8 @@ def format_output_html(brand_totals):
     ">
         <thead>
             <tr style="background-color:#000000; color:white;">
-                <th style="padding:12px; width:80px;"></th>
-                <th style="padding:12px; text-align:left;">MARCA</th>
-                <th style="padding:12px; text-align:center;">TOTAL</th>
+                <th style="padding:12px; text-align:left; color:{text_colors[0]}">MARCA</th>
+                <th style="padding:12px; text-align:center; color:{text_colors[0]}">TOTAL</th>
             </tr>
         </thead>
         <tbody>
