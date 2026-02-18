@@ -133,6 +133,7 @@ def preprocess_image(image_bytes, max_size=1024, jpeg_quality=70):
 # === MAIN PROCESSING FUNCTION ===
 def process(file, session_id, enter_time, progress=gr.Progress()):
     print(f"\nSession ID: {session_id}")
+    print(f"Algorithm version: {BRAND_DETECTION_VERSION}")
     elapsed_time = None
     if enter_time is not None:
         now = datetime.now(timezone.utc)
@@ -285,7 +286,7 @@ with gr.Blocks(title="CuantoTengo") as main:
     
     gr.Markdown(f"<div style='display:flex; align-items:center; justify-content:space-between;'>\
         <h1 style='font-size: 40px; color:#F59E0B'>CuantoTengo</h1> \
-        <h3 style='font-size: 16px; color:#FFF'>VERSION <b>{BRAND_DETECTION_VERSION}</b></h3>\
+        <h3 style='font-size: 16px; color:#FFF'><b>BY LIFT LAB</b></h3>\
     </div>")
     
     #=== SESSION GATE ===
