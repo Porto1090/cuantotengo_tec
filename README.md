@@ -1,4 +1,4 @@
-# CuantoTengo-Web-App
+# SGAC-Shelf-Geometry-Aware-Counting
 
 <p align="center">
   <a href="#research-context">Research Context</a> •
@@ -129,6 +129,6 @@ See [`.env.example`][.env] for an example environment.
 ---
 
 ##### Developed by Eduardo Porto [@Porto1090](https://github.com/Porto1090)
-##### Developed by Junyi Sha [@Rombreak](https://github.com/Rombreak)
+##### Developed by Junyi Sha [@Roombreak](https://github.com/Roombreak)
 
 [.env]: /.env.example
