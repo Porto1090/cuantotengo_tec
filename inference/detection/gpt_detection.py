@@ -3,6 +3,9 @@ import json
 import cv2
 import base64
 from openai import OpenAI
+from inference.config import (
+	SKU_CATALOG
+)
 
 from dotenv import load_dotenv
 load_dotenv()
@@ -15,8 +18,17 @@ def encode_crop(crop):
 	b64 = base64.b64encode(buffer).decode("utf-8")
 	return f"data:image/jpeg;base64,{b64}"
 
-def llm_detect_brand(crop):
-	image_data_url = encode_crop(crop)
+def llm_detect_brand(crop, nearby_crops):
+	main_image_data_url = encode_crop(crop)
+	nearby_images = []
+	for n_crop in nearby_crops:
+		nearby_images.append({
+				"type": "input_image",
+				"image_url": encode_crop(n_crop)
+		})
+
+	sku_list_text = "\n".join([f"- {sku}" for sku in SKU_CATALOG])
+    
 	response = client.responses.create(
 	model="gpt-5.2",
 		input=[
@@ -25,12 +37,30 @@ def llm_detect_brand(crop):
 				"content": [
 					{
 						"type": "input_text",
-						"text": "Identify beverage CAN OR BOTTLE brand and flavor: BRAND FLAVOR (ex. Dos Equis Lager, Manzanita Sol Original, Modelo Especial, New Mix Jimador Paloma Lata). If you cannot identify the brand and flavor, try your best. Only respond with the brand and flavor, no explanations or additional text."
+						"text": f"""
+							You must identify the beverage SKU.
+
+							You MUST choose ONLY from the following SKU list:
+
+							{sku_list_text}
+
+							Return EXACTLY one SKU from the list.
+							If uncertain, choose the closest match.
+							Do not invent new names.
+							Do not explain.
+
+							Main product image:
+							"""
 					},
 					{
 						"type": "input_image",
-						"image_url": image_data_url
-					}
+						"image_url": main_image_data_url
+					},
+					{
+						"type": "input_text",
+						"text": "Nearby products for context:"
+					},
+					*nearby_images
 				]
 			}
 		]

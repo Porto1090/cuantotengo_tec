@@ -57,7 +57,7 @@ def get_brands_from_image(front_bottles, image_bgr):
 
     brand_results = []
 
-    for bottle in front_bottles:
+    for idx, bottle in enumerate(front_bottles):
         x1, y1 = int(bottle["x1"]), int(bottle["y1"])
         x2, y2 = int(bottle["x2"]), int(bottle["y2"])
 
@@ -65,7 +65,13 @@ def get_brands_from_image(front_bottles, image_bgr):
         crop = image_bgr[y1:y2, x1:x2]
         
         if BRAND_DETECTION_VERSION == "GPT":
-            formatted = llm_detect_brand(crop)
+            nearby_crops = _get_nearby_crops(
+                front_bottles,
+                image_bgr,
+                index=idx,
+                k=1
+            )
+            formatted = llm_detect_brand(crop, nearby_crops)
         else:
             # Convert BGR → RGB → tensor
             crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
@@ -84,6 +90,30 @@ def get_brands_from_image(front_bottles, image_bgr):
 
     return brand_results
 
+def _get_nearby_crops(front_bottles, image_bgr, index, k=1):
+    """
+    Returns up to 2*k nearby bottle crops (left and right neighbors).
+    """
+    nearby_crops = []
+
+    total = len(front_bottles)
+
+    for offset in range(1, k+1):
+        # Left neighbor <-
+        if index - offset >= 0:
+            b = front_bottles[index - offset]
+            x1, y1 = int(b["x1"]), int(b["y1"])
+            x2, y2 = int(b["x2"]), int(b["y2"])
+            nearby_crops.append(image_bgr[y1:y2, x1:x2])
+
+        # Right neighbor ->
+        if index + offset < total:
+            b = front_bottles[index + offset]
+            x1, y1 = int(b["x1"]), int(b["y1"])
+            x2, y2 = int(b["x2"]), int(b["y2"])
+            nearby_crops.append(image_bgr[y1:y2, x1:x2])
+
+    return nearby_crops
 
 def match_brands_to_bottles(front_bottles, brands_list):
     """

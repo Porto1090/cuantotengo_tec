@@ -7,7 +7,7 @@
 </p>
 
 <div style="text-align: center;">
-  <img src="public/cuantotengo.gif" alt="CuantoTengo Demo" style="center">
+  <img src="images/CuantoTengo.jpeg" alt="CuantoTengo Demo" style="center; padding: 0 0 20px 0; width: 250px; height: auto;"/>
 </div>
 
 CuantoTengo is a mobile-first inventory management tool that uses computer vision to automatically recognize and count products from a single image captured with a smartphone.
@@ -26,7 +26,7 @@ From a single image, the system:
 
 <table>
   <tr>
-    <td><strong>Computer Vision</strong></td>
+    <td><strong>Web Development Frameworks</strong></td>
     <td>
       <img src="https://img.shields.io/badge/Flask-150458.svg?&logo=flask&logoColor=white" alt="Flask"/>
       <img src="https://img.shields.io/badge/Gradio-150458.svg?&logo=gradio&logoColor=white" alt="Gradio"/>
@@ -53,41 +53,34 @@ From a single image, the system:
 
 ```bash
 .
-├── Call_Qualtrics_API.py
-├── __pycache__
-│   ├── azure_blob_storage.cpython-311.pyc
-│   ├── keys.cpython-311.pyc
-│   └── keys.cpython-313.pyc
+├── README.md
 ├── app.py
 ├── azure_blob_storage.py
-├── brand_model_3class.pt
-├── classification_model copy.py
-├── classification_model.py
-├── data
-│   ├── ...
+├── azure_loader.py
+├── images
+│   └── ...
 ├── inference
-│   ├── __pycache__
 │   ├── config.py
 │   ├── detection
+│   │   ├── cap_detection.py
+│   │   ├── column_detection.py
+│   │   ├── front_detection.py
+│   │   ├── gpt_detection.py
+│   │   └── local_brand_detection.py
 │   ├── final_aggregation.py
 │   ├── image_utils.py
 │   ├── main_inference.py
-│   └── plots.py
-├── keys.py
-├── main.py
-├── main_original.py
+│   ├── plots.py
+│   └── runtime
+│       ├── device.py
+│       └── models.py
 ├── models
 │   ├── bottle_can_cap_yolo_weights.pt
-│   └── bottlefront_weights.pt
-├── requirements.txt
-├── services
-│   ├── __pycache__
-│   ├── blob_storage.py
-│   ├── database.py
-│   ├── setup_documentation.txt
-│   └── whatsapp.py
-└── venv
-    └── ...
+│   ├── bottlefront_weights.pt
+│   ├── brand_model_3class.pt
+│   └── brand_model_3class_lab.pt
+├── qualtrics_survey.py
+└── requirements.txt
 ```
 
 ## Installation
@@ -100,7 +93,7 @@ From a single image, the system:
 
 ```bash
 # Clone the repository
-git clone https://github.mit.edu/LIFT-Lab/CuantoTengo-Web-App.git
+git clone https://github.com/Roombreak/SGAC-Shelf-Geometry-Aware-Counting
 ```
 
 ### Set environment and run service
@@ -125,14 +118,17 @@ The Gradio app will be available at [http://localhost:7860/](http://localhost:78
 Set these as your environment variables or create a `.env` file. The variables should be structured as follows:
 
 ```bash
-AZURE_STORAGE_CONNECTION_STRING=...
+BRAND_DETECTION_VERSION=... #MEX or LAB or GPT 
 AZURE_CONTAINER=...
+AZURE_STORAGE_CONNECTION_STRING=...
+OPENAI_API_KEY=...
 ```
 
 See [`.env.example`][.env] for an example environment.
 
 ---
 
-Developed by Eduardo Porto Morales [@Porto1090](https://github.com/Porto1090)
+##### Developed by Eduardo Porto [@Porto1090](https://github.com/Porto1090)
+##### Developed by Junyi Sha [@Rombreak](https://github.com/Rombreak)
 
 [.env]: /.env.example

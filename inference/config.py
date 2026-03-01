@@ -2,6 +2,70 @@
 Configuration parameters for inference pipeline
 """ 
 
+SKU_CATALOG = {
+    "Coca-Cola": ["Orange Cream", "Original", "Zero Sugar"],
+    "Coke": ["Diet"],
+    "Sprite": ["Original", "Zero"],
+    "Canada Dry": ["Original"],
+    "Dr Pepper": ["Original"],
+    "Chobani": [
+        "Strawberries & Cream",
+        "Mixed Berry Vanilla",
+        "Strawberry Banana",
+        "Mixed Berry"
+    ],
+    "Gatorade Gatorlyte": [
+        "Lemon-Lime",
+        "Strawberry Kiwi",
+        "Orange",
+        "Cherry Lime",
+        "Glacier Freeze"
+    ],
+    "Olipop Prebiotic Soda": ["Cream Soda", "Cherry Soda"],
+    "Poppi Prebiotic Soda": [
+        "Raspberry Rose",
+        "Strawberry Lemon",
+        "Orange Cream",
+        "Lemon Lime",
+        "Orange",
+        "Grape"
+    ],
+    "Hood": ["Fat Free Milk"],
+    "Seltzer Water": ["Lime"],
+    "Modelo": ["Especial", "Negra"],
+    "Pepsi": ["Black", "Original", "Light"],
+    "Manzanita Sol": ["Original"],
+    "Monster": [
+        "Pipeline Punch",
+        "Mango Loco",
+        "Ultra Vice Guava",
+        "Electric Blue"
+    ],
+    "So Good So You Sparkling Energy Drink": ["Strawberry Mango"],
+    "Vitaminwater": ["Lemonade Squeezed"],
+    "Fanta": ["Orange"],
+    "Good & Gather": [
+        "Vegetable Oil",
+        "Distilled White Vinegar"
+    ],
+    "Vita Coco": [
+        "Extra Coconut"
+    ],
+    "Recess": [
+        "Lime Citrus",
+        "Tropical Bliss",
+        "Grapefruit Tangerine"
+    ],
+    "Polar Seltzer": [
+        "Mandarin",
+        "Raspberry Lime",
+        "Lime",
+        "Black Cherry",
+        "Original"],
+    "Poland Spring": ["Original"],
+    "Quilmes": ["Classic"]
+}
+
 # TODO: Better version control than manually updating here
 MODEL_VERSIONS = {
     "cap_model_version": 0.1,
