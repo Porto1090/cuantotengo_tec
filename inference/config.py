@@ -3,11 +3,11 @@ Configuration parameters for inference pipeline
 """ 
 
 SKU_CATALOG = {
-    "Jumex": ["Manzana, Durazno"],
+    "Jumex": ["Manzana", "Durazno"],
     "La Croix": ["Limón", "Mora"],
     "Canada Dry": ["Original"],
     "Boing": ["Mango", "Guayaba"],
-    "Pepsi": ["Original, Light"],
+    "Pepsi": ["Original", "Light"],
     "Mirinda": ["Original"],
     "Manzanita Sol": ["Original"],
 }
