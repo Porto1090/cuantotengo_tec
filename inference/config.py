@@ -3,13 +3,14 @@ Configuration parameters for inference pipeline
 """ 
 
 SKU_CATALOG = {
-    "Jumex": ["Manzana", "Durazno"],
-    "La Croix": ["Limón", "Mora"],
-    "Canada Dry": ["Original"],
-    "Boing": ["Mango", "Guayaba"],
-    "Pepsi": ["Original", "Light"],
+    "Jumex": ["Manzana", "Durazno", "Mango"],
+    "Boing": ["Mango", "Guayaba", "Fresa", "Manzana"],
     "Mirinda": ["Original"],
     "Manzanita Sol": ["Original"],
+    "Pepsi": ["Original"],
+    "Squirt": ["Original"],
+    "Mirinda": ["Original"],
+    "7 Up": ["Original"]
 }
 
 # TODO: Better version control than manually updating here

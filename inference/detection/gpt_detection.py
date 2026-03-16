@@ -36,6 +36,8 @@ def llm_detect_brand(crop, nearby_crops):
 
 	sku_list = build_sku_list()
 	sku_list_text = "\n".join([f"- {sku}" for sku in sku_list])
+	# print("SKU LIST SENT TO LLM:")
+	# print(sku_list_text)
 
 	response = client.responses.create(
 	model="gpt-5.2",

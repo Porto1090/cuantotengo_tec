@@ -69,7 +69,7 @@ def format_output_html(brand_totals):
         transformed_key = "_".join(key.split('_')[1:])
         print(f"Transformed key: {transformed_key}")
         pretty_name = BRAND_MAP.get(transformed_key, key.split("_", 1)[-1].replace("_", " ").title())
-        img_path = f"./images/{transformed_key}.jpg"
+        img_path = f"./images/{transformed_key.replace(' ', '_')}.jpg"
 
         # Convertir imagen local a base64
         try:
@@ -87,6 +87,9 @@ def format_output_html(brand_totals):
         # </td>
         rows += f"""
         <tr style="background-color:{bg_color}; border-bottom:1px solid #e5e7eb;">
+            <td style="background-color:{text_colors[0]}; margin: auto; text-align:center; padding:10px; width:80px; display:flex; justify-content:center; align-items:center;">
+                <img src="{img_src}" color="black" width="64" height="64" style="object-fit: contain; align:center; color:{text_colors[1]};" alt="NO IMAGE"/>
+            </td>
             <td style="padding:8px; text-align:left; font-size:24px; height:80px; color:{text_colors[0]};">
                 {pretty_name}
             </td>
@@ -107,6 +110,7 @@ def format_output_html(brand_totals):
     ">
         <thead>
             <tr style="background-color:#000000; color:white;">
+                <th style="padding:12px; width:80px;"></th>
                 <th style="padding:12px; text-align:left; color:{text_colors[0]}">MARCA</th>
                 <th style="padding:12px; text-align:center; color:{text_colors[0]}">TOTAL</th>
             </tr>
