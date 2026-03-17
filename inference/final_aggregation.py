@@ -28,10 +28,10 @@ def compute_brand_counts(bottle_brand_mapping, front_cap_to_bottle, cap_counts):
             # Totals count
             counts = cap_counts.get(cap_bbox, {'bottle': 0, 'can': 0})
             if counts['bottle'] > 0:
-                key = f"bottle_{matched_product}"
+                key = f"{matched_product.replace(' ', '_')}"
                 brand_totals[key] = brand_totals.get(key, 0) + counts['bottle']
             if counts['can'] > 0:
-                key = f"can_{matched_product}"
+                key = f"{matched_product.replace(' ', '_')}"
                 brand_totals[key] = brand_totals.get(key, 0) + counts['can']
 
             # Lanes count

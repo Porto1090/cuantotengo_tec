@@ -9,7 +9,7 @@ import numpy as np
 import gradio as gr
 import pandas as pd
 import azure_blob_storage as azure_bs
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from inference.main_inference import InferencePipeline
 from inference.config import (
     MX_CLASS_NAMES_DICT, LAB_CLASS_NAMES_DICT,
@@ -49,7 +49,7 @@ def format_output_for_df(brand_totals):
     for key, value in brand_totals.items():
         pretty_name = BRAND_MAP.get(key, key)
         rows.append({"MARCA": pretty_name or key, "TOTAL": value})
-        print(f"Marca: {pretty_name}, Total: {value}")
+        #print(f"Marca: {pretty_name}, Total: {value}")
     
         df = pd.DataFrame(rows)
         df = df.sort_values(by="MARCA").reset_index(drop=True)
@@ -66,9 +66,9 @@ def format_output_html(brand_totals):
     )
 
     for idx, (key, value) in enumerate(sorted_items):
-        transformed_key = "_".join(key.split('_')[1:])
-        print(f"Transformed key: {transformed_key}")
-        pretty_name = BRAND_MAP.get(transformed_key, key.split("_", 1)[-1].replace("_", " ").title())
+        transformed_key = key.replace("_", " ")
+        #print(f"Transformed key: {transformed_key}")
+        pretty_name = transformed_key.title()
         img_path = f"./images/{transformed_key.replace(' ', '_')}.jpg"
 
         # Convertir imagen local a base64
@@ -98,7 +98,7 @@ def format_output_html(brand_totals):
             </td>
         </tr>
         """
-        print(f"Marca: {pretty_name}, Total: {value}")
+        #print(f"Marca: {pretty_name}, Total: {value}")
 
     # ADD-ON -> <th style="padding:12px; width:80px;"></th>
     return f"""
@@ -142,7 +142,8 @@ def process(file, session_id, enter_time, progress=gr.Progress()):
     print(f"Algorithm version: {BRAND_DETECTION_VERSION}")
     elapsed_time = None
     if enter_time is not None:
-        now = datetime.now(timezone.utc)
+        utc_minus_6 = timezone(timedelta(hours=-6))
+        now = datetime.now(utc_minus_6)
         elapsed_time = (now - enter_time).total_seconds()
     progress(0, desc="Leyendo imagen...")
 
@@ -179,7 +180,7 @@ def process(file, session_id, enter_time, progress=gr.Progress()):
 
     annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
     
-    real_timestamp = datetime.now(timezone.utc).replace(microsecond=0).isoformat()[:-6]
+    real_timestamp = datetime.now(utc_minus_6).replace(microsecond=0).isoformat()[:-6]
     # === SAVE TO AZURE BLOB STORAGE ===
     # SAVE ORIGINAL IMAGE
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
@@ -239,7 +240,8 @@ def set_session_id(user_input):
         )
         
     # timestamp for session start
-    timestamp = datetime.now(timezone.utc)
+    utc_minus_6 = timezone(timedelta(hours=-6))
+    timestamp = datetime.now(utc_minus_6)
 
     return (
         sid, # session_id
