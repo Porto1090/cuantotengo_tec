@@ -18,10 +18,16 @@ def get_blob_url(session_id, metadata, prefix):
     if blob_client is None:
         return None
     
-    blob_name = f"{prefix}/{session_id}_{metadata}.jpg"
+    blob_name = create_blob_name(prefix, session_id, metadata)
     blob = blob_client.get_blob_client(container=AZURE_CONTAINER, blob=blob_name)
     
     return blob.url
+
+def create_blob_name(prefix, session_id, metadata):
+    if session_id == "0":
+        return f"{prefix}_test/{session_id}_{metadata}.json"
+    else:
+        return f"{prefix}/{session_id}_{metadata}.json"
 
 def save_image_to_blob(image_rgb, session_id, metadata, prefix="images"):
     if blob_client is None:
@@ -29,7 +35,7 @@ def save_image_to_blob(image_rgb, session_id, metadata, prefix="images"):
         return None
     img_bytes = cv2.imencode(".jpg", cv2.cvtColor(image_rgb, cv2.COLOR_RGB2BGR))[1].tobytes()
 
-    blob_name = f"{prefix}/{session_id}_{metadata}.jpg"
+    blob_name = create_blob_name(prefix, session_id, metadata)
     blob = blob_client.get_blob_client(container=AZURE_CONTAINER, blob=blob_name)
 
     blob.upload_blob(img_bytes, overwrite=True)
@@ -41,7 +47,8 @@ def save_log_to_blob(log_dict, session_id, metadata, prefix="logs"):
     if blob_client is None:
         # Storage disabled (DEV / testing)
         return None
-    blob_name = f"{prefix}/{session_id}_{metadata}.json"
+    blob_name = create_blob_name(prefix, session_id, metadata)
+        
     print(f"Saving log to Azure Blob Storage: {log_dict}")
     blob = blob_client.get_blob_client(container=AZURE_CONTAINER, blob=blob_name)
 
