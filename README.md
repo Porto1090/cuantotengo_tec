@@ -89,6 +89,11 @@ From a single image, the system:
 
 - [Python3.11](https://www.python.org/downloads/release/python-3110/)
 
+- Generar un ambiente de ejecución con variables de entorno:
+```bash
+sudo nvim /etc/systemd/system/cuantotengo.service
+```
+
 ### Manual Installation
 
 ```bash
