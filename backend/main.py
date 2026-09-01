@@ -18,6 +18,7 @@ Ejecutar:
 import os
 import re
 import cv2
+import string
 import secrets
 import numpy as np
 from datetime import datetime, timezone, timedelta
