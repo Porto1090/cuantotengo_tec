@@ -1,41 +1,30 @@
 """
-CuantoTengo — Backend API (FastAPI)
-------------------------------------
-Este backend reemplaza la capa de UI de Gradio, pero reutiliza exactamente
-la misma lógica de negocio (preprocesamiento de imagen, inferencia, guardado
-en Azure Blob Storage y armado de resultados) que ya existía en el script
-original. La UI ahora vive en React y consume estos endpoints por HTTP.
-
-Endpoints:
-  GET  /api/health                      -> chequeo de vida del servicio
-  POST /api/session/enter               -> valida/crea una sesión (equivalente a set_session_id)
-  POST /api/process                     -> procesa una imagen subida (equivalente a process())
-
-Ejecutar:
-  uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+CuantoTengo — Backend API (FastAPI) - Memory Optimized
+------------------------------------------------------
+Optimizado para mantenerse bajo el límite de 512MB RAM en Render.
 """
 
 import os
 import re
 import cv2
+import gc
 import string
 import secrets
 import numpy as np
 from datetime import datetime, timezone, timedelta
 
-from fastapi import FastAPI, UploadFile, File, Form, HTTPException
+from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 import azure_blob_storage as azure_bs
-from inference.main_inference import InferencePipeline
 from inference.config import MX_CLASS_NAMES_DICT, LAB_CLASS_NAMES_DICT
 
 from dotenv import load_dotenv
 load_dotenv()
 
-BRAND_DETECTION_VERSION = os.getenv("BRAND_DETECTION_VERSION")
+BRAND_DETECTION_VERSION = os.getenv("BRAND_DETECTION_VERSION", "v1.0")
 
 BRAND_MAP = {
     **MX_CLASS_NAMES_DICT,
@@ -45,34 +34,37 @@ BRAND_MAP = {
 SESSION_REGEX = re.compile(r"^[0-9]{1,3}$")
 UTC_MINUS_6 = timezone(timedelta(hours=-6))
 
-app = app = FastAPI(title="CuantoTengo API")
+app = FastAPI(title="CuantoTengo API")
 
-# En producción, restringe allow_origins al dominio real del frontend.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["*"],
 )
 
-# Sirve las imágenes de marca (./images/*.jpg) que antes se incrustaban
-# como base64 dentro del HTML de Gradio. Ahora el frontend las pide
-# directamente vía URL: GET /static/images/<nombre>.jpg
-app.mount("/static/images", StaticFiles(directory="images"), name="brand-images")
+images_dir = os.path.join(os.path.dirname(__file__), "images")
+if not os.path.exists(images_dir):
+    os.makedirs(images_dir, exist_ok=True)
 
-# Cache en memoria del pipeline para no recargarlo en cada request.
+app.mount("/static/images", StaticFiles(directory=images_dir), name="brand-images")
+
 _pipeline = None
 
 
-def get_pipeline() -> InferencePipeline:
+def get_pipeline():
+    """Lazy import and loading to minimize startup memory overhead."""
     global _pipeline
     if _pipeline is None:
+        import torch
+        torch.set_num_threads(1)  # Limita hilos de CPU para reducir pico de RAM
+        from inference.main_inference import InferencePipeline
         _pipeline = InferencePipeline()
     return _pipeline
 
 
-# === HELPERS (equivalentes 1:1 a los del script original) ===
+# === HELPERS ===
 
 def generate_short_hex() -> str:
     letters = [secrets.choice(string.ascii_uppercase) for _ in range(2)]
@@ -80,9 +72,12 @@ def generate_short_hex() -> str:
     return "".join(letters + numbers)
 
 
-def preprocess_image(image_bytes: bytes, max_size: int = 1024, jpeg_quality: int = 70):
+def preprocess_image(image_bytes: bytes, max_size: int = 640, jpeg_quality: int = 65):
+    """Reducido a 640px max para evitar picos de RAM en OpenCV/NumPy."""
     np_arr = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+    del np_arr  # Liberar buffer original inmediatamente
+    
     if img is None:
         raise ValueError("Error: No se logró decodificar la imagen.")
 
@@ -93,16 +88,14 @@ def preprocess_image(image_bytes: bytes, max_size: int = 1024, jpeg_quality: int
 
     encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), jpeg_quality]
     _, jpg = cv2.imencode(".jpg", img, encode_param)
-    return cv2.imdecode(jpg, cv2.IMREAD_COLOR)
+    del img
+    
+    decoded_img = cv2.imdecode(jpg, cv2.IMREAD_COLOR)
+    del jpg
+    return decoded_img
 
 
 def build_brand_rows(brand_totals: dict) -> list[dict]:
-    """
-    Reemplaza a format_output_html / format_output_for_df.
-    En vez de generar HTML con imágenes en base64, devolvemos datos
-    estructurados: el componente React <ResultsTable /> se encarga
-    de pintar la tabla y resolver la imagen vía /static/images/<marca>.jpg
-    """
     rows = []
     for key, value in brand_totals.items():
         pretty_name = (BRAND_MAP.get(key, key) or key).replace("_", " ").title()
@@ -147,7 +140,6 @@ def health():
 
 @app.post("/api/session/enter", response_model=SessionResponse)
 def enter_session(payload: SessionRequest):
-    """Equivalente a set_session_id(): valida el ID de sesión (1-999)."""
     sid = (payload.session_id or "").strip().upper()
 
     if not sid:
@@ -162,7 +154,6 @@ def enter_session(payload: SessionRequest):
 
 @app.post("/api/session/test", response_model=SessionResponse)
 def enter_test_session():
-    """Equivalente al botón 'ENTRAR COMO TEST' (sesión fija '000')."""
     enter_time = datetime.now(UTC_MINUS_6)
     return SessionResponse(ok=True, session_id="000", enter_time=enter_time.isoformat())
 
@@ -173,7 +164,8 @@ async def process_image(
     session_id: str = Form(...),
     enter_time: str | None = Form(None),
 ):
-    """Equivalente a process(): decodifica, corre el pipeline, guarda en Azure y responde."""
+    import torch
+
     elapsed_time = None
     if enter_time:
         try:
@@ -185,38 +177,60 @@ async def process_image(
     try:
         image_bytes = await file.read()
         img_bgr = preprocess_image(image_bytes)
+        del image_bytes
     except Exception:
         return ProcessResponse(ok=False, error="No se pudo decodificar la imagen. Vuelve a intentarlo.")
 
-    pipeline = get_pipeline()
-    (
-        brand_totals, annotated, cap_data, front_bottles,
-        bottle_brand_mapping, lane_totals, processing_time,
-    ) = pipeline.run(img_bgr)
+    try:
+        pipeline = get_pipeline()
+        
+        # Ejecutar inferencia desactivando cálculo de gradientes
+        with torch.no_grad():
+            (
+                brand_totals, annotated, cap_data, front_bottles,
+                bottle_brand_mapping, lane_totals, processing_time,
+            ) = pipeline.run(img_bgr)
+
+    except Exception as e:
+        gc.collect()
+        return ProcessResponse(ok=False, error=f"Fallo en inferencia: {str(e)}")
 
     if not brand_totals:
+        gc.collect()
         return ProcessResponse(ok=False, error="No se detectaron productos en la imagen. Vuelve a intentarlo.")
 
     annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
     img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
+    
+    del annotated
+    del img_bgr
 
     real_timestamp = datetime.now(UTC_MINUS_6).replace(microsecond=0).isoformat()[:-6]
 
-    # === GUARDADO EN AZURE BLOB STORAGE (idéntico al original) ===
-    azure_bs.save_image_to_blob(img_rgb, session_id, real_timestamp + "_original", BRAND_DETECTION_VERSION + "_images")
-    azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
+    # === GUARDADO EN AZURE BLOB STORAGE ===
+    try:
+        azure_bs.save_image_to_blob(img_rgb, session_id, real_timestamp + "_original", BRAND_DETECTION_VERSION + "_images")
+        azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
 
-    log_dict = {
-        "session_id": session_id,
-        "version": BRAND_DETECTION_VERSION,
-        "timestamp": real_timestamp,
-        "brand_totals": brand_totals,
-        "processing_time": f"{processing_time:.2f}",
-        "elapsed_time_in_session": f"{elapsed_time:.2f}" if elapsed_time is not None else None,
-    }
-    azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp, BRAND_DETECTION_VERSION + "_logs")
+        log_dict = {
+            "session_id": session_id,
+            "version": BRAND_DETECTION_VERSION,
+            "timestamp": real_timestamp,
+            "brand_totals": brand_totals,
+            "processing_time": f"{processing_time:.2f}",
+            "elapsed_time_in_session": f"{elapsed_time:.2f}" if elapsed_time is not None else None,
+        }
+        azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp, BRAND_DETECTION_VERSION + "_logs")
+        image_url = azure_bs.get_blob_url(session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
+    except Exception:
+        image_url = None
 
+    del img_rgb
+    del annotated_rgb
+    
     rows = build_brand_rows(brand_totals)
-    image_url = azure_bs.get_blob_url(session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
+    
+    # Forzar recolección de basura post-inferencia
+    gc.collect()
 
     return ProcessResponse(ok=True, rows=rows, image_url=image_url, processing_time=processing_time)
