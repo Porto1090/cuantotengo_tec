@@ -16,3 +16,6 @@ opencv-python-headless
 numpy
 pillow
 tqdm
+rapidfuzz
+scikit-learn
+scipy
