@@ -108,6 +108,62 @@ def match_and_extend_columns(image, front_caps, all_caps):
 
     return column_lines
 
+def draw_caps_and_column_lines(image, cap_data, column_lines, line_weight=3, distance_tolerance=20):
+    output_image = image.copy()
+    img_height, img_width = output_image.shape[:2]
+    
+    # 1. Dibujar las líneas de columna calculadas
+    LINE_COLOR = (255, 0, 0)
+    
+    for slope, intercept, f_cx in column_lines:
+        #print(f"[INFO] Drawing column line: slope={slope}, intercept={intercept}, front_cap_x={f_cx}")
+        if slope is None:
+            cv2.line(output_image, (int(f_cx), 0), (int(f_cx), img_height), LINE_COLOR, 2)
+        else:
+            x1_line = 0
+            y1_line = int(slope * x1_line + intercept)
+            x2_line = img_width
+            y2_line = int(slope * x2_line + intercept)
+            
+            cv2.line(output_image, (x1_line, y1_line), (x2_line, y2_line), LINE_COLOR, 2)
+
+    # 2. Evaluar y pintar las cajas de las tapas según su pertenencia a la columna
+    COLOR_IN_COLUMN = (0, 255, 0)
+    COLOR_OUTSIDE = (0, 0, 255)
+
+    for cap in cap_data:
+        x1, y1, x2, y2 = int(cap["x1"]), int(cap["y1"]), int(cap["x2"]), int(cap["y2"])
+        cap_cx, cap_cy = (x1 + x2) / 2, (y1 + y2) / 2
+        
+        is_in_column = False
+
+        for slope, intercept, f_cx in column_lines:
+            if slope is None:
+                # Línea vertical: distancia pura en X
+                if (x1 - distance_tolerance) <= f_cx <= (x2 + distance_tolerance) or abs(cap_cx - f_cx) <= 25:
+                    is_in_column = True
+                    break
+            else:
+                A = slope
+                B = -1
+                C = intercept
+                distance = abs(A * cap_cx + B * cap_cy + C) / np.sqrt(A**2 + B**2)
+                
+                y_at_x1 = slope * x1 + intercept
+                y_at_x2 = slope * x2 + intercept
+                
+                line_crosses_box = (y1 <= y_at_x1 <= y2) or (y1 <= y_at_x2 <= y2) or (min(y_at_x1, y_at_x2) <= y2 and max(y_at_x1, y_at_x2) >= y1)
+
+                if distance <= distance_tolerance or line_crosses_box:
+                    is_in_column = True
+                    break
+
+        color = COLOR_IN_COLUMN if is_in_column else COLOR_OUTSIDE
+        #print(f"[INFO] Drawing cap box at ({x1}, {y1}, {x2}, {y2}) - {'IN COLUMN' if is_in_column else 'OUTSIDE COLUMN'}")
+        cv2.rectangle(output_image, (x1, y1), (x2, y2), color, line_weight)
+
+    return output_image
+
 
 def compute_intersections(column_lines):
     """
@@ -163,98 +219,85 @@ def cluster_vanishing_points(intersections):
 
 
 def check_misaligned_columns(column_lines, vanishing_x, vanishing_y):
-    """
-    Identifies misaligned column lines that do not pass through the vanishing region.
-
-    Args:
-        column_lines (list): List of (slope, intercept, front_cap_x).
-        vanishing_x (float): x-coordinate of vanishing point.
-        vanishing_y (float): y-coordinate of vanishing point.
-
-    Returns:
-        dict: Mapping of misaligned front_cap_x to their (slope, intercept).
-    """
-    
-    # SAFETY CHECK: no column lines, 
     if not column_lines:
         print("[WARNING] No column lines for misalignment check.")
         return {}
 
-    # SAFETY CHECK: no vanishing point
-    if vanishing_x is None or vanishing_y is None:
-        print("[WARNING] Vanishing point not found — skipping misalignment detection.")
-        return {}
-    
     misaligned = {}
 
-    x_min = vanishing_x - VANISHING_BOX_SIZE
-    x_max = vanishing_x + VANISHING_BOX_SIZE
-    y_min = vanishing_y - VANISHING_BOX_SIZE
-    y_max = vanishing_y + VANISHING_BOX_SIZE
+    # CASO 1: Si tenemos punto de fuga, usamos la validación original de convergencia
+    if vanishing_x is not None and vanishing_y is not None:
+        x_min = vanishing_x - VANISHING_BOX_SIZE
+        x_max = vanishing_x + VANISHING_BOX_SIZE
+        y_min = vanishing_y - VANISHING_BOX_SIZE
+        y_max = vanishing_y + VANISHING_BOX_SIZE
 
-    for slope, intercept, f_cx in column_lines:
-        if slope is None:
-            continue
+        for slope, intercept, f_cx in column_lines:
+            if slope is None:
+                continue
 
-        y_at_x_min = slope * x_min + intercept
-        y_at_x_max = slope * x_max + intercept
-        x_at_y_min = (y_min - intercept) / slope if slope != 0 else f_cx
-        x_at_y_max = (y_max - intercept) / slope if slope != 0 else f_cx
+            y_at_x_min = slope * x_min + intercept
+            y_at_x_max = slope * x_max + intercept
+            x_at_y_min = (y_min - intercept) / slope if slope != 0 else f_cx
+            x_at_y_max = (y_max - intercept) / slope if slope != 0 else f_cx
 
-        crossings = sum([
-            y_min <= y_at_x_min <= y_max,
-            y_min <= y_at_x_max <= y_max,
-            x_min <= x_at_y_min <= x_max,
-            x_min <= x_at_y_max <= x_max
-        ])
+            crossings = sum([
+                y_min <= y_at_x_min <= y_max,
+                y_min <= y_at_x_max <= y_max,
+                x_min <= x_at_y_min <= x_max,
+                x_min <= x_at_y_max <= x_max
+            ])
 
-        if crossings < 2:
-            misaligned[f_cx] = (slope, intercept)
+            if crossings < 2:
+                misaligned[f_cx] = (slope, intercept)
+    
+    # CASO 2: Si NO hay punto de fuga, aplicamos inspección geométrica local de pendientes y cruces
+    else:
+        print("[INFO] Vanishing point not found. Running local geometric anomaly detection.")
+        
+        valid_slopes = [slope for slope, _, _ in column_lines if slope is not None]
+        if not valid_slopes:
+            return {}
+
+        median_slope = np.median(valid_slopes)
+        reference_sign = np.sign(median_slope) if median_slope != 0 else 1
+
+        for slope, intercept, f_cx in column_lines:
+            if slope is None:
+                continue
+            
+            # Criterio 1: Inconsistencia de signo (si apunta al lado opuesto del resto de columnas)
+            if reference_sign != 0 and np.sign(slope) != reference_sign:
+                print(f"[DETECTED] Anomalía de signo en columna x={f_cx}: pendiente={slope} (esperado signo {reference_sign})")
+                misaligned[f_cx] = (slope, intercept)
+                continue
+
+            # Criterio 2: Desviación excesiva respecto a la mediana de las pendientes
+            if abs(slope - median_slope) > 0.8:  # Umbral más estricto
+                print(f"[DETECTED] Desviación excesiva en columna x={f_cx}: pendiente={slope} vs mediana={median_slope}")
+                misaligned[f_cx] = (slope, intercept)
 
     return misaligned
 
 
 def correct_misaligned_columns(column_lines, misaligned_columns, vanishing_x, vanishing_y, front_caps):
-    """
-    Corrects misaligned columns by re-regressing from vanishing region to front cap.
-
-    Args:
-        column_lines (list): Original column line tuples.
-        misaligned_columns (dict): Misaligned columns {f_cx: (slope, intercept)}.
-        vanishing_x (float): x-coordinate of vanishing point.
-        vanishing_y (float): y-coordinate of vanishing point.
-        front_caps (list): List of (cx, cy) for front bottle caps.
-
-    Returns:
-        list: Corrected list of (slope, intercept, front_cap_x) lines.
-    """
-    
-    # SAFETY:
     if not column_lines:
         print("[WARNING] No column lines to correct.")
         return []
 
-    # SAFETY:
     if not misaligned_columns:
+        #print("[INFO] No misaligned columns detected — no corrections needed.")
         return column_lines
 
-    # SAFETY:
-    if vanishing_x is None or vanishing_y is None:
-        print("[WARNING] No vanishing point — skipping misalignment corrections.")
-        return column_lines
-    
+    print("[INFO] Correcting misaligned/overlapping columns to vertical lines.")
     corrected = []
-
+    
     for slope, intercept, f_cx in column_lines:
         if f_cx not in misaligned_columns:
             corrected.append((slope, intercept, f_cx))
         else:
-            f_cy = next((cy for cx, cy in front_caps if cx == f_cx), None)
-            if f_cy is None:
-                corrected.append((slope, intercept, f_cx))
-                continue
-            new_slope = (f_cy - vanishing_y) / (f_cx - vanishing_x)
-            new_intercept = f_cy - new_slope * f_cx
-            corrected.append((new_slope, new_intercept, f_cx))
+            # En lugar de recalcular un punto de fuga fallido, la enderezamos a vertical pura
+            print(f"[INFO] Forzando columna en x={f_cx} a vertical para evitar sobreposiciones.")
+            corrected.append((None, None, f_cx))
 
     return corrected

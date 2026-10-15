@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 // Por ahora vamos a manejar el progreso de manera aproximada, ya que no tenemos un endpoint que nos diga el progreso real del procesamiento de la imagen.
 // En un futuro estaría bien poder hacer una inferencia local y no depender de apis externas como la de openai, permitiendonos tener un progreso real y no aproximado.
 
-const ESTIMATED_TOTAL_MS = 7000;
+const ESTIMATED_TOTAL_MS = 3000;
 
 const STAGES = [
   { upTo: 12, label: "Subiendo imagen..." },

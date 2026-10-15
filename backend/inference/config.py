@@ -35,7 +35,7 @@ SOFT_NMS_SCORE_THRESHOLD = 0.3
 # --- Front Bottle Detection ---
 FRONT_BOTTLE_MODEL_PATH = "models/bottlefront_weights.pt"
 FRONT_DETECTION_CONFIDENCE = 0.5
-FRONT_CAP_OVERLAP_THRESHOLD = 0.9  # 90% of cap inside front box
+FRONT_CAP_OVERLAP_THRESHOLD = 0.3
 
 # --- MEXICO VERSION ---
 MX_BRAND_MODEL_PATH = "models/brand_model_3class.pt"

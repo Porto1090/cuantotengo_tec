@@ -1,15 +1,13 @@
 """
-CuantoTengo — Backend API (FastAPI) - Memory Optimized
-------------------------------------------------------
-Optimizado para mantenerse bajo el límite de 512MB RAM en Render.
+CuantoTengo — Backend API (FastAPI)
+CODED BY: @porto1090 - Eduardo Porto
 """
 
 import os
 import re
 import cv2
 import gc
-import string
-import secrets
+import torch
 import numpy as np
 from datetime import datetime, timezone, timedelta
 
@@ -18,7 +16,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-import azure_blob_storage as azure_bs
 from inference.config import MX_CLASS_NAMES_DICT, LAB_CLASS_NAMES_DICT
 
 from dotenv import load_dotenv
@@ -29,6 +26,7 @@ BRAND_DETECTION_VERSION = os.getenv("BRAND_DETECTION_VERSION", "v1.0")
 BRAND_MAP = {
     **MX_CLASS_NAMES_DICT,
     **LAB_CLASS_NAMES_DICT,
+    "unknown": "No identificado",
 }
 
 SESSION_REGEX = re.compile(r"^[0-9]{1,3}$")
@@ -52,31 +50,21 @@ app.mount("/static/images", StaticFiles(directory=images_dir), name="brand-image
 
 _pipeline = None
 
-
 def get_pipeline():
     """Lazy import and loading to minimize startup memory overhead."""
     global _pipeline
     if _pipeline is None:
-        import torch
-        torch.set_num_threads(1)  # Limita hilos de CPU para reducir pico de RAM
+        torch.set_num_threads(1)
         from inference.main_inference import InferencePipeline
         _pipeline = InferencePipeline()
     return _pipeline
 
 
 # === HELPERS ===
-
-def generate_short_hex() -> str:
-    letters = [secrets.choice(string.ascii_uppercase) for _ in range(2)]
-    numbers = [secrets.choice(string.digits) for _ in range(4)]
-    return "".join(letters + numbers)
-
-
 def preprocess_image(image_bytes: bytes, max_size: int = 640, jpeg_quality: int = 65):
-    """Reducido a 640px max para evitar picos de RAM en OpenCV/NumPy."""
     np_arr = np.frombuffer(image_bytes, np.uint8)
     img = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-    del np_arr  # Liberar buffer original inmediatamente
+    del np_arr
     
     if img is None:
         raise ValueError("Error: No se logró decodificar la imagen.")
@@ -126,7 +114,8 @@ class SessionResponse(BaseModel):
 class ProcessResponse(BaseModel):
     ok: bool
     rows: list[dict] | None = None
-    image_url: str | None = None
+    original_image_url: str | None = None
+    annotated_image_url: str | None = None
     processing_time: float | None = None
     error: str | None = None
 
@@ -140,7 +129,7 @@ def health():
 
 @app.post("/api/session/enter", response_model=SessionResponse)
 def enter_session(payload: SessionRequest):
-    sid = (payload.session_id or "").strip().upper()
+    sid = (payload.session_id).strip().upper()
 
     if not sid:
         return SessionResponse(ok=False, error="ID requerido")
@@ -157,80 +146,56 @@ def enter_test_session():
     enter_time = datetime.now(UTC_MINUS_6)
     return SessionResponse(ok=True, session_id="000", enter_time=enter_time.isoformat())
 
+def save_session_images(session_id: str, img_bgr, annotated_img) -> tuple[str | None, str | None]:
+    try:
+        timestamp = datetime.now(UTC_MINUS_6).strftime("%Y%m%d_%H%M%S")
+        orig_filename = f"original/{session_id}_{timestamp}_original.jpg"
+        anno_filename = f"annotated/{session_id}_{timestamp}_annotated.jpg"
+        
+        orig_path = os.path.join(images_dir, orig_filename)
+        anno_path = os.path.join(images_dir, anno_filename)
+        
+        cv2.imwrite(orig_path, img_bgr)
+        cv2.imwrite(anno_path, annotated_img)
+        
+        return f"/static/images/{orig_filename}", f"/static/images/{anno_filename}"
+    except Exception as e:
+        print(f"[WARNING] No se pudieron guardar las imágenes localmente: {e}")
+        return None, None
 
 @app.post("/api/process", response_model=ProcessResponse)
 async def process_image(
     file: UploadFile = File(...),
     session_id: str = Form(...),
-    enter_time: str | None = Form(None),
-):
-    import torch
-
-    elapsed_time = None
-    if enter_time:
-        try:
-            enter_dt = datetime.fromisoformat(enter_time)
-            elapsed_time = (datetime.now(UTC_MINUS_6) - enter_dt).total_seconds()
-        except ValueError:
-            elapsed_time = None
-
+):    
     try:
         image_bytes = await file.read()
         img_bgr = preprocess_image(image_bytes)
-        del image_bytes
     except Exception:
         return ProcessResponse(ok=False, error="No se pudo decodificar la imagen. Vuelve a intentarlo.")
+    finally:
+        del image_bytes
 
     try:
         pipeline = get_pipeline()
-        
-        # Ejecutar inferencia desactivando cálculo de gradientes
         with torch.no_grad():
-            (
-                brand_totals, annotated, cap_data, front_bottles,
-                bottle_brand_mapping, lane_totals, processing_time,
-            ) = pipeline.run(img_bgr)
-
+            ( brand_totals, annotated, _, _, _, _, processing_time ) = pipeline.run(img_bgr)
     except Exception as e:
         gc.collect()
         return ProcessResponse(ok=False, error=f"Fallo en inferencia: {str(e)}")
-
+    
     if not brand_totals:
         gc.collect()
         return ProcessResponse(ok=False, error="No se detectaron productos en la imagen. Vuelve a intentarlo.")
 
-    annotated_rgb = cv2.cvtColor(annotated, cv2.COLOR_BGR2RGB)
-    img_rgb = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2RGB)
-    
-    del annotated
-    del img_bgr
+    original_image_url, annotated_image_url = save_session_images(session_id, img_bgr, annotated)
 
-    real_timestamp = datetime.now(UTC_MINUS_6).replace(microsecond=0).isoformat()[:-6]
-
-    # === GUARDADO EN AZURE BLOB STORAGE ===
-    try:
-        azure_bs.save_image_to_blob(img_rgb, session_id, real_timestamp + "_original", BRAND_DETECTION_VERSION + "_images")
-        azure_bs.save_image_to_blob(annotated_rgb, session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
-
-        log_dict = {
-            "session_id": session_id,
-            "version": BRAND_DETECTION_VERSION,
-            "timestamp": real_timestamp,
-            "brand_totals": brand_totals,
-            "processing_time": f"{processing_time:.2f}",
-            "elapsed_time_in_session": f"{elapsed_time:.2f}" if elapsed_time is not None else None,
-        }
-        azure_bs.save_log_to_blob(log_dict, session_id, real_timestamp, BRAND_DETECTION_VERSION + "_logs")
-        image_url = azure_bs.get_blob_url(session_id, real_timestamp + "_bounding_boxes", BRAND_DETECTION_VERSION + "_images")
-    except Exception:
-        image_url = None
-
-    del img_rgb
-    del annotated_rgb
+    del annotated, img_bgr
+    gc.collect()
     
     rows = build_brand_rows(brand_totals)
+    print("-> FIN. ¡Proceso completado con éxito!")
     
     # Forzar recolección de basura post-inferencia
     gc.collect()
-
-    return ProcessResponse(ok=True, rows=rows, image_url=image_url, processing_time=processing_time)
+    return ProcessResponse(ok=True, rows=rows, annotated_image_url=annotated_image_url, original_image_url=original_image_url, processing_time=processing_time)

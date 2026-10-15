@@ -7,6 +7,8 @@ export default function Dashboard({ sessionId, enterTime }) {
   const fileInputRef = useRef(null);
   const [rows, setRows] = useState(null);
   const [imageUrl, setImageUrl] = useState(null);
+  const [annotatedImageUrl, setAnnotatedImageUrl] = useState(null);
+  const [showOriginal, setShowOriginal] = useState(false);
   const [processingTime, setProcessingTime] = useState(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -20,6 +22,8 @@ export default function Dashboard({ sessionId, enterTime }) {
     setErrorMessage("");
     setRows(null);
     setImageUrl(null);
+    setAnnotatedImageUrl(null);
+    setShowOriginal(false);
     setDone(false);
     setHasResult(true);
     setLoading(true);
@@ -33,7 +37,8 @@ export default function Dashboard({ sessionId, enterTime }) {
       }
 
       setRows(data.rows);
-      setImageUrl(resolveImageUrl(data.image_url));
+      setImageUrl(resolveImageUrl(data.original_image_url));
+      setAnnotatedImageUrl(resolveImageUrl(data.annotated_image_url));
       setProcessingTime(data.processing_time);
     } catch (err) {
       setErrorMessage(err.message || "No se pudo procesar la imagen. Vuelve a intentarlo.");
@@ -58,6 +63,8 @@ export default function Dashboard({ sessionId, enterTime }) {
   function handleReset() {
     setRows(null);
     setImageUrl(null);
+    setAnnotatedImageUrl(null);
+    setShowOriginal(false);
     setErrorMessage("");
     setHasResult(false);
     setDone(false);
@@ -126,14 +133,46 @@ export default function Dashboard({ sessionId, enterTime }) {
         </div>
       )}
 
-      {showWorkspace && (rows || imageUrl) && (
+      {showWorkspace && (rows || annotatedImageUrl) && (
         <div className="flex flex-col gap-4 min-[860px]:flex-row min-[860px]:items-start">
-          {imageUrl && (
+          {annotatedImageUrl && (
             <div className="rounded-[20px] border border-[#2a2a2e] bg-[#17171a] p-[16px] shadow-[0_8px_24px_rgba(0,0,0,0.35)] min-[860px]:sticky min-[860px]:top-6 min-[860px]:flex-[0_0_42%]">
-              <p className="m-0 mb-[10px] font-display text-[14px] font-semibold uppercase tracking-[0.04em] text-[#a3a3a8]">
-                Imagen generada
-              </p>
-              <img className="block w-full rounded-[8px]" src={imageUrl} alt="Resultado anotado" />
+              <div className="flex items-center justify-between mb-[10px]">
+                <p className="m-0 font-display text-[14px] font-semibold uppercase tracking-[0.04em] text-[#a3a3a8]">
+                  {showOriginal ? "Imagen original" : "Imagen generada"}
+                </p>
+                
+                <div className="inline-flex p-1 bg-[#121215] border border-[#2a2a2e] rounded-xl">
+                  <button
+                    type="button"
+                    onClick={() => setShowOriginal(false)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                      !showOriginal
+                        ? "bg-[#222226] text-white shadow-sm"
+                        : "text-[#a3a3a8] hover:text-[#e4e4e7]"
+                    }`}
+                  >
+                    Marcada
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowOriginal(true)}
+                    className={`px-3 py-1 text-xs font-semibold rounded-lg transition-all duration-200 ${
+                      showOriginal
+                        ? "bg-[#222226] text-white shadow-sm"
+                        : "text-[#a3a3a8] hover:text-[#e4e4e7]"
+                    }`}
+                  >
+                    Original
+                  </button>
+                </div>
+              </div>
+
+              <img 
+                className="block w-full rounded-[8px] transition-opacity duration-200" 
+                src={showOriginal ? imageUrl : annotatedImageUrl} 
+                alt={showOriginal ? "Imagen original" : "Resultado anotado"} 
+              />
             </div>
           )}
 

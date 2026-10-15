@@ -12,3 +12,6 @@ venv/
 **/.DS_Store
 
 node_modules
+
+backend/images/original
+backend/images/annotated

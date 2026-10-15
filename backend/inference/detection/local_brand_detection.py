@@ -8,7 +8,7 @@ from inference.config import(
     LAB_BRAND_MODEL_PATH, LAB_CLASS_NAMES,
     MX_BRAND_MODEL_PATH, MX_CLASS_NAMES
 )
-from inference.detection.gpt_detection import llm_detect_brand
+from inference.detection.gpt_detection import llm_detect_brands
 
 CLASS_NAMES = []
 BRAND_MODEL_PATH = ""
@@ -65,13 +65,11 @@ def get_brands_from_image(front_bottles, image_bgr):
         crop = image_bgr[y1:y2, x1:x2]
         
         if BRAND_DETECTION_VERSION == "GPT":
-            nearby_crops = _get_nearby_crops(
-                front_bottles,
-                image_bgr,
-                index=idx,
-                k=1
+            crops = [image_bgr[int(b["y1"]):int(b["y2"]), int(b["x1"]):int(b["x2"])] for b in front_bottles]
+            return llm_detect_brands(
+                crops,
+                nearby_for_index=lambda i: _get_nearby_crops(front_bottles, image_bgr, index=i, k=1),
             )
-            formatted = llm_detect_brand(crop, nearby_crops)
         else:
             # Convert BGR → RGB → tensor
             crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)

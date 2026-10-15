@@ -1,10 +1,61 @@
-from inference.image_utils import soft_nms
 from inference.config import (
     CAP_DETECTION_CONFIDENCE,
     SOFT_NMS_IOU_THRESHOLD,
     SOFT_NMS_SIGMA,
     SOFT_NMS_SCORE_THRESHOLD,
 )
+import numpy as np
+from tqdm import tqdm
+
+def soft_nms(boxes, scores, iou_threshold=0.5, sigma=0.5, score_threshold=0.3):
+    boxes = np.array(boxes)
+    scores = np.array(scores)
+    N = boxes.shape[0]
+    indices = np.arange(N)
+    keep = []
+    visited = np.zeros(N, dtype=bool)
+    pbar = tqdm(total=N, desc="Applying Soft-NMS", unit="box", leave=False)
+
+    while len(indices) > 0:
+        max_score_idx = np.argmax(scores[indices])
+        current_idx = indices[max_score_idx]
+
+        if visited[current_idx]:
+            indices = np.delete(indices, max_score_idx)
+            continue
+
+        keep.append(current_idx)
+        visited[current_idx] = True
+
+        x1, y1, x2, y2 = boxes[current_idx]
+        current_area = (x2 - x1 + 1) * (y2 - y1 + 1)
+
+        overlaps = []
+        for idx in indices:
+            if visited[idx]:
+                overlaps.append(0)
+                continue
+
+            xx1 = max(x1, boxes[idx][0])
+            yy1 = max(y1, boxes[idx][1])
+            xx2 = min(x2, boxes[idx][2])
+            yy2 = min(y2, boxes[idx][3])
+            w = max(0, xx2 - xx1 + 1)
+            h = max(0, yy2 - yy1 + 1)
+            intersection = w * h
+            area = (boxes[idx][2] - boxes[idx][0] + 1) * (boxes[idx][3] - boxes[idx][1] + 1)
+            iou = intersection / (current_area + area - intersection)
+            overlaps.append(iou)
+
+        overlaps = np.array(overlaps)
+        decay = np.exp(-(overlaps ** 2) / sigma)
+        scores[indices] = scores[indices] * decay
+
+        indices = indices[scores[indices] > score_threshold]
+        pbar.update(1)
+
+    pbar.close()
+    return keep
 
 def detect_caps(image, cap_model):
     results = cap_model.predict(image, conf=CAP_DETECTION_CONFIDENCE)
