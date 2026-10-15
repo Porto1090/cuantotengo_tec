@@ -1,0 +1,8 @@
+# Fijen aquí las MISMAS versiones que usan en local:
+#   pip show ultralytics numpy torch
+# Ejemplo: ultralytics==8.x.y
+ultralytics==8.4.174
+numpy==2.5.3
+torch==2.14.1
+torchvision==0.29.1
+opencv-python-headless==4.8.0.76

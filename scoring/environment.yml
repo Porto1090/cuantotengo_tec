@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/latest/environment.schema.json
+name: cuantotengo-yolo-env
+version: "1"
+description: Entorno CPU para los modelos YOLO de CuantoTengo
+build:
+  path: ./environment

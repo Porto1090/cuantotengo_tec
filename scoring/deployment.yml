@@ -1,0 +1,21 @@
+$schema: https://azuremlschemas.azureedge.net/latest/managedOnlineDeployment.schema.json
+name: blue
+endpoint_name: cuantotengo-yolo-XXXX
+model: azureml:cuantotengo-yolo:1
+environment: azureml:cuantotengo-yolo-env:1
+code_configuration:
+  code: ./src
+  scoring_script: score.py
+instance_type: Standard_DS3_v2
+instance_count: 1
+environment_variables:
+  WORKER_COUNT: "1"
+  TORCH_THREADS: "4"
+  CAP_MODEL_FILE: bottle_can_cap_yolo_weights.pt
+  FRONT_MODEL_FILE: bottlefront_weights.pt
+  CAP_DETECTION_CONFIDENCE: "0.3"
+  FRONT_DETECTION_CONFIDENCE: "0.5"
+  YOLO_CONFIG_DIR: /tmp/Ultralytics
+request_settings:
+  request_timeout_ms: 30000
+  max_concurrent_requests_per_instance: 1

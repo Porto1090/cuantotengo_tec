@@ -1,9 +1,9 @@
 import os
 import cv2
-import torch
 from PIL import Image
-import torch.nn.functional as tnnf
-from torchvision import transforms, models
+# import torch
+# import torch.nn.functional as tnnf
+# from torchvision import transforms, models
 from inference.config import(
     LAB_BRAND_MODEL_PATH, LAB_CLASS_NAMES,
     MX_BRAND_MODEL_PATH, MX_CLASS_NAMES
@@ -26,20 +26,20 @@ elif BRAND_DETECTION_VERSION == "LAB":
 
 model = None
 
-if BRAND_DETECTION_VERSION != "GPT":        
-    model = models.resnet18(weights=None)
-    model.fc = torch.nn.Linear(model.fc.in_features, len(CLASS_NAMES))
-    model.load_state_dict(torch.load(BRAND_MODEL_PATH, map_location="cpu"))
-    model.eval()
+# if BRAND_DETECTION_VERSION != "GPT":        
+#     model = models.resnet18(weights=None)
+#     model.fc = torch.nn.Linear(model.fc.in_features, len(CLASS_NAMES))
+#     model.load_state_dict(torch.load(BRAND_MODEL_PATH, map_location="cpu"))
+#     model.eval()
 
-preprocess = transforms.Compose([
-    transforms.Resize((224, 224)),
-    transforms.ToTensor(),
-    transforms.Normalize(
-        mean=[0.485, 0.456, 0.406],
-        std=[0.229, 0.224, 0.225]
-    )
-])
+# preprocess = transforms.Compose([
+#     transforms.Resize((224, 224)),
+#     transforms.ToTensor(),
+#     transforms.Normalize(
+#         mean=[0.485, 0.456, 0.406],
+#         std=[0.229, 0.224, 0.225]
+#     )
+# ])
 
 # -------------------------------------------------------------
 # Replacement for LLM-based detection
@@ -71,20 +71,21 @@ def get_brands_from_image(front_bottles, image_bgr):
                 nearby_for_index=lambda i: _get_nearby_crops(front_bottles, image_bgr, index=i, k=1),
             )
         else:
-            # Convert BGR → RGB → tensor
-            crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
-            pil_img = Image.fromarray(crop_rgb)
-            x = preprocess(pil_img).unsqueeze(0)
+            # # Convert BGR → RGB → tensor
+            # crop_rgb = cv2.cvtColor(crop, cv2.COLOR_BGR2RGB)
+            # pil_img = Image.fromarray(crop_rgb)
+            # x = preprocess(pil_img).unsqueeze(0)
 
-            # Predict
-            with torch.no_grad():
-                logits = model(x)
-                probs = tnnf.softmax(logits, dim=1)
-                pred_idx = probs.argmax().item()
+            # # Predict
+            # with torch.no_grad():
+            #     logits = model(x)
+            #     probs = tnnf.softmax(logits, dim=1)
+            #     pred_idx = probs.argmax().item()
             
-            formatted = CLASS_NAMES[pred_idx]
+            # formatted = CLASS_NAMES[pred_idx]
 
-        brand_results.append(formatted)
+        # brand_results.append(formatted)
+            pass
 
     return brand_results
 

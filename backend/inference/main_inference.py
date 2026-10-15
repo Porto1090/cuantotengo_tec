@@ -2,15 +2,9 @@ import time
 import logging
 #logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 
-import inference.config as cfg
-from inference.runtime.device import get_device
-from inference.runtime.models import load_models
+from inference.scoring_client import ScoringClient
 
-from inference.detection.cap_detection import (
-    detect_caps
-)
 from inference.detection.front_detection import (
-    detect_front_bottles,
     detect_and_match_fronts
 )
 from inference.detection.column_detection import (
@@ -33,22 +27,17 @@ log = logging.getLogger("cuantotengo")
 
 class InferencePipeline:
     def __init__(self):
-        self.device = get_device()
-        log.info("Using device: %s", self.device)
-        self.models = load_models(
-            self.device,
-            cfg.CAP_MODEL_PATH,
-            cfg.FRONT_BOTTLE_MODEL_PATH
-        )
-        log.info("YOLO models loaded.")
-
-    def run(self, image):
+        self.scoring = ScoringClient()
+        self.last_timings = {}
+        self.last_scoring_meta = {}
+        
+    def run(self, image, request_id=None):
         """Runs the full product detection pipeline and returns brand counts and annotated image."""
         timings = {}
         t_start = time.perf_counter()
         
         cap_data, front_bottles = self._detect_caps_and_fronts(
-            image, timings
+            image, timings, request_id
         )
         annotated_image, corrected_lines = self._detect_and_correct_columns(
             image, cap_data, front_bottles, timings
@@ -72,26 +61,13 @@ class InferencePipeline:
         
         return brand_totals, annotated_image, cap_data, front_bottles, bottle_brand_mapping, lane_totals, processing_total
         
-    def _detect_caps_and_fronts(self, image, timings):
+    def _detect_caps_and_fronts(self, image, timings, request_id=None):
         t0 = time.perf_counter()
         
-        # Force sequential execution to avoid PyTorch/C++ deadlocks
-        cap_data = detect_caps(
-            image,
-            self.models["cap"]
-        )
-        print("Cantidad de tapas:", len(cap_data))
-        t1 = time.perf_counter()
-        front_bottles = detect_front_bottles(
-            image,
-            self.models["front"]
-        )
-        print("Cantidad de botellas frontales:", len(front_bottles))
-        t2 = time.perf_counter()
+        cap_data, front_bottles, meta = self.scoring.detect(image, request_id=request_id)
+        self.last_scoring_meta = meta
 
-        timings["cap_model"] = t1 - t0
-        timings["front_model_1st"] = t2 - t1
-
+        timings["scoring_endpoint"] = time.perf_counter() - t0
         return cap_data, front_bottles
     
     def _detect_and_correct_columns(self, image, cap_data, front_bottles, timings):

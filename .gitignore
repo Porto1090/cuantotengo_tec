@@ -7,11 +7,26 @@ data/
 test_images/
 output/
 
-.env
+*.py[cod]
+.venv/
 venv/
+*.egg-info/
+.pytest_cache/
+
+.env
+.env.*
+!.env.example
+
 **/.DS_Store
+.idea/
+.vscode/
 
-node_modules
+node_modules/
+frontend/dist/
 
-backend/images/original
-backend/images/annotated
+backend/images/original/
+backend/images/annotated/
+debug_crops/
+
+scoring/.venv/
+scoring/sample-request.json

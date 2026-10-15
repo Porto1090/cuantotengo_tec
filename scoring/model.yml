@@ -1,0 +1,6 @@
+$schema: https://azuremlschemas.azureedge.net/latest/model.schema.json
+name: cuantotengo-yolo
+version: "1"
+type: custom_model
+path: ./model/yolo
+description: Pesos YOLO de tapas/latas/botellas y de botellas frontales
