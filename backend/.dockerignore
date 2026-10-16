@@ -1,0 +1,23 @@
+# Secretos: en Azure van como secretos de Container Apps
+.env
+.env.*
+!.env.example
+
+# Entornos y caché
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Imágenes generadas en tiempo de ejecución
+images/original/
+images/annotated/
+debug_crops/
+
+# Pesos que la API ya no usa (la detección vive en Azure ML)
+models/
+
+# Herramientas de desarrollo
+compare_brand_models.py
+*.ipynb
+.DS_Store
